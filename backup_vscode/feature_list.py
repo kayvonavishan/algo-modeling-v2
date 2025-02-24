@@ -1,0 +1,1008 @@
+def add_lagging_features(ticker_df_adjusted, feature_columns=None, step_size=1, num_steps=5):
+    """
+    Add lagging features to a DataFrame for specified columns.
+    
+    Parameters:
+    -----------
+    ticker_df_adjusted : pandas.DataFrame
+        Input DataFrame with time series data
+    feature_columns : list, optional
+        List of column names to create lagged features for. If None, uses default features
+    step_size : int, default=1
+        Size of each lag step
+    num_steps : int, default=5
+        Number of lag steps to create
+        
+    Returns:
+    --------
+    pandas.DataFrame
+        DataFrame with original and lagged features
+    """
+    
+    # If feature_columns is not provided, use default list
+    if feature_columns is None:
+        feature_columns = [
+            'close_raw_percentile_5', 
+            'close_raw_percentile_10', 
+            'close_raw_percentile_20',
+            'close_percentile_5', 
+            'close_percentile_10', 
+            'close_percentile_20',
+        ]
+    
+    # Initialize df_features with the current time t features as lag_0
+    df_features = ticker_df_adjusted[feature_columns].copy()
+    df_features.rename(columns=lambda x: f'{x}_lag_0', inplace=True)  # Rename to include _lag_0
+    
+    # Loop through the feature columns to create lagged features
+    for column in feature_columns:
+        for step in range(1, num_steps + 1):
+            lag_period = step * step_size
+            # Create the lagged feature
+            df_features[f'{column}_lag_{lag_period}'] = ticker_df_adjusted[column].shift(lag_period)
+    
+    return df_features
+
+
+def copy_other_features(ticker_df_adjusted, df_features):
+    """
+    Copy other features from ticker_df_adjusted to df_features
+    
+    Parameters:
+    -----------
+    ticker_df_adjusted : pandas.DataFrame
+        Source DataFrame containing all features
+    df_features : pandas.DataFrame
+        Target DataFrame where features will be copied to
+        
+    Returns:
+    --------
+    pandas.DataFrame
+        DataFrame with copied features
+    """
+    # Define the list of other features
+    other_features = [
+        
+        #label
+        'label',
+
+        #symbol
+        'symbol',
+
+        # prices
+        'close',
+        'high',
+        'low',
+        'close_raw', 
+        'high_raw', 
+        'low_raw', 
+        
+        # hour
+        "hours_930_10",
+        "hours_1000_1100",
+        "hours_1100_1200",
+        "hours_1200_1300",
+        "hours_1300_1400",
+        "hours_1400_1500",
+        "hours_1500_1600",
+
+        # add_trailing_percent_change_atr_adjusted
+        'trailing_percent_change_atr_adjusted_close_3', 
+        'trailing_percent_change_atr_adjusted_close_5',
+        'trailing_percent_change_atr_adjusted_close_7',
+        'trailing_percent_change_atr_adjusted_close_10',
+        'trailing_percent_change_atr_adjusted_close_15',
+        'trailing_percent_change_atr_adjusted_close_20',
+        'trailing_percent_change_atr_adjusted_close_100',
+        'trailing_percent_change_atr_adjusted_close_200',
+        'trailing_percent_change_atr_adjusted_close_300',
+        'trailing_percent_change_atr_adjusted_close_raw_3', 
+        'trailing_percent_change_atr_adjusted_close_raw_5',
+        'trailing_percent_change_atr_adjusted_close_raw_7',
+        'trailing_percent_change_atr_adjusted_close_raw_10',
+        'trailing_percent_change_atr_adjusted_close_raw_15',
+        'trailing_percent_change_atr_adjusted_close_raw_20',
+        'trailing_percent_change_atr_adjusted_close_raw_100',
+        'trailing_percent_change_atr_adjusted_close_raw_200',
+        'trailing_percent_change_atr_adjusted_close_raw_300',
+
+        # add_long_term_hma_features_raw 
+        'hma_long_term_slope_5_positive_raw',
+        'hma_long_term_slope_10_positive_raw',
+        'hma_long_term_slope_15_positive_raw',
+        'hma_long_term_slope_20_positive_raw',
+        'hma_long_term_slope_30_positive_raw',
+        'hma_long_term_slope_40_positive_raw',
+        'hma_long_term_slope_50_positive_raw',
+        'hma_long_term_slope_75_positive_raw',
+        'hma_long_term_slope_100_positive_raw',
+        'hma_long_term_slope_150_positive_raw',
+        'hma_long_term_slope_200_positive_raw',
+        'hma_long_term_slope_250_positive_raw',
+        'hma_long_term_slope_300_positive_raw',
+        'hma_long_term_slope_350_positive_raw',
+        'hma_long_term_slope_percent_positive_20_raw',
+        'hma_long_term_slope_percent_positive_75_raw',
+        'hma_long_term_slope_percent_positive_50_raw',
+        'hma_long_term_slope_percent_positive_100_raw',
+        'hma_long_term_slope_percent_positive_150_raw',
+        'hma_long_term_slope_percent_positive_200_raw',
+        'hma_long_term_slope_percent_positive_250_raw',
+        'hma_long_term_slope_percent_positive_300_raw',
+        'hma_long_term_slope_percent_positive_350_raw',
+
+        # add_raw_distance_metrics
+        'hma_long_term_slope_percent_positive_percentage_distance_50_350_raw',
+        'hma_long_term_slope_percent_positive_percentage_distance_20_350_raw',
+        'hma_long_term_distance_10_75_raw',
+        'hma_long_term_distance_20_200_raw',
+
+        # add_price_position_indicators_raw
+        'close_below_price_slope_hma_long_term_150_raw',
+        'close_below_price_slope_hma_long_term_75_raw',
+        'close_below_price_slope_hma_long_term_40_raw',
+        'close_below_price_slope_hma_long_term_30_raw',
+        'close_below_price_slope_hma_long_term_25_raw',
+        'close_below_price_slope_hma_long_term_20_raw',
+        'close_below_price_slope_hma_long_term_15_raw',
+        'close_below_price_slope_hma_long_term_10_raw',
+        'close_below_hma_count_raw',
+        'close_between_hma_75_150_raw',
+        'close_between_hma_40_75_raw',
+        'close_between_hma_30_40_raw',
+        'close_between_hma_25_30_raw',
+        'close_between_hma_20_25_raw',
+        'close_between_hma_15_20_raw',
+        'close_between_hma_10_15_raw',
+
+        # add_std_deviation_features_raw
+        'close_std_dev_below_hma_30_raw',
+        'close_std_dev_above_hma_30_raw',
+        'close_std_40_raw',
+        'close_std_dev_below_hma_40_raw',
+        'close_std_dev_above_hma_40_raw',
+        'close_std_dev_total_distance_40_raw',
+        'close_std_ewm_40_raw',
+        'close_std_relative_40_raw',
+        'close_vol_adj_distance_hma_40_raw',
+        'close_std_dev_extreme_below_40_1_raw',
+        'close_std_dev_extreme_above_40_1_raw',
+        'close_std_dev_extreme_below_40_2_raw',
+        'close_std_dev_extreme_above_40_2_raw',
+        'close_std_dev_extreme_below_40_3_raw',
+        'close_std_dev_extreme_above_40_3_raw',
+        'close_std_dev_max_40_raw',
+        'close_std_20_raw',
+        'close_std_dev_below_hma_20_raw',
+        'close_std_dev_above_hma_20_raw',
+        'close_std_dev_total_distance_20_raw',
+        'close_std_ewm_20_raw',
+        'close_std_relative_20_raw',
+        'close_vol_adj_distance_hma_20_raw',
+        'close_std_dev_extreme_below_20_1_raw',
+        'close_std_dev_extreme_above_20_1_raw',
+        'close_std_dev_extreme_below_20_2_raw',
+        'close_std_dev_extreme_above_20_2_raw',
+        'close_std_dev_extreme_below_20_3_raw',
+        'close_std_dev_extreme_above_20_3_raw',
+        'close_std_dev_max_20_raw',
+
+        #calculate_hma_distance_features_raw
+        'close_distance_hma_10_raw',
+        'close_distance_hma_15_raw',
+        'close_distance_hma_20_raw',
+        'close_distance_hma_25_raw',
+        'close_distance_hma_30_raw',
+        'close_distance_hma_40_raw',
+        'close_distance_hma_75_raw',
+        'close_distance_hma_150_raw',
+
+        # calculate_hma_cross_period_features_raw
+        'close_distance_hma_5_20_raw',
+        'close_distance_hma_5_40_raw',
+
+        #calculate_cci_features_raw
+        'close_CCI_short_raw',
+        'close_CCI_medium_raw',
+        'close_CCI_long_raw',
+        'close_CCI_short_raw_hma_7',
+        'close_CCI_short_raw_hma_10',
+        'close_CCI_short_raw_hma_14',
+        'close_CCI_short_raw_hma_18',
+        'close_CCI_short_raw_hma_22',
+        'close_CCI_medium_raw_hma_7',
+        'close_CCI_medium_raw_hma_10',
+        'close_CCI_medium_raw_hma_14',
+        'close_CCI_medium_raw_hma_18',
+        'close_CCI_medium_raw_hma_22',
+        'close_CCI_long_raw_hma_7',
+        'close_CCI_long_raw_hma_10',
+        'close_CCI_long_raw_hma_14',
+        'close_CCI_long_raw_hma_18',
+        'close_CCI_long_raw_hma_22',
+        'close_CCI_20_raw_hma_20_between_neg_200_and_neg_150',
+        'close_CCI_20_raw_hma_20_between_neg_150_and_neg_100',
+        'close_CCI_20_raw_hma_20_between_neg_100_and_neg_50',
+        'close_CCI_20_raw_hma_20_between_neg_50_and_0',
+        'close_CCI_20_raw_hma_20_between_0_and_50',
+        'close_CCI_20_raw_hma_20_between_50_and_100',
+        'close_CCI_20_raw_hma_20_between_100_and_150',
+        'close_CCI_20_raw_hma_20_between_150_and_200',
+
+        # calculate_technical_indicators_raw
+        'close_ROC_short_raw',
+        'close_ROC_short_raw_EMA_12',
+        'close_ROC_medium_raw',
+        'close_ROC_medium_raw_EMA_12',
+        'close_ROC_long_raw',
+        'close_ROC_long_raw_EMA_12',
+        'close_RSI_short_raw',
+        'close_RSI_short_raw_EMA_12',
+        'close_RSI_medium_raw',
+        'close_RSI_medium_raw_EMA_12',
+        'close_RSI_long_raw',
+        'close_RSI_long_raw_EMA_12',
+        'close_PPO_short_raw',
+        'close_PPO_medium_raw',
+        'close_PPO_long_raw',
+        'close_Stoch_%K_short_raw',
+        'close_Stoch_%D_short_raw',
+        'close_Stoch_%K_medium_raw',
+        'close_Stoch_%D_medium_raw',
+        'close_Stoch_%K_long_raw',
+        'close_Stoch_%D_long_raw',
+
+        # add_comprehensive_slope_features
+        'slope_25_positive_raw',
+        'slope_50_positive_raw',
+        'slope_100_positive_raw',
+        'slope_200_positive_raw',
+        'kama_slope_2_positive_raw',
+        'kama_slope_3_positive_raw',
+        'kama_slope_4_positive_raw',
+        'kama_slope_5_positive_raw',
+        'kama_slope_10_positive_raw',
+        'kama_slope_15_positive_raw',
+
+
+        # used by RNN models 
+        # keeping these here to make it easier when I run to create a new RNN model
+        # 'close_slope_70_2',
+        # 'close_slope_45_2',
+        # 'close_slope_35_2',
+        # 'close_slope_25_2',
+        # 'close_slope_15_2',
+        # 'close_slope_10_2',
+        # 'close_slope_5_2',
+        # 'close_slope_4_2',
+        # 'close_raw_slope_2_hma_10',
+        # 'close_raw_slope_10_hma_10',
+        # 'close_raw_slope_20_hma_10',
+        # 'close_raw_slope_30_hma_10',
+        # 'close_slope_100_2_raw', 
+        # 'close_slope_100_5_raw',
+        # 'close_slope_60_2_raw',
+        # 'close_slope_60_5_raw',
+        # 'close_slope_45_2_raw',
+        # 'close_slope_45_5_raw',
+        # 'close_slope_35_2_raw',
+        # 'close_slope_35_5_raw',
+        # 'close_slope_25_2_raw', 
+        # 'close_slope_25_5_raw', 
+        # 'close_2nd_deriv_25_5_raw', 
+        # 'close_slope_15_2_raw', 
+        # 'close_slope_15_5_raw', 
+        # 'close_2nd_deriv_15_5_raw', 
+        # 'close_slope_10_2_raw', 
+        # 'close_slope_10_5_raw', 
+        # 'close_2nd_deriv_10_5_raw', 
+        # 'close_slope_5_2_raw', 
+        # 'close_slope_5_5_raw', 
+        # 'close_slope_4_2_raw', 
+        # 'close_slope_4_5_raw', 
+        # 'close_2nd_deriv_25_5_positive',
+        # 'close_2nd_deriv_15_5_positive',
+        # 'close_2nd_deriv_10_5_positive',
+        # 'close_slope_25_2_raw_positive',
+
+        # misc stationary features 
+        'z_score_price_slope_short_term',
+        'relative_atr_kv_slope_2',
+        'trend_slope_combined_buy',
+        'trend_slope_2nd_derivative_buy',
+        'trend_buy_short_term',
+        
+        #calculate_cci_features
+        'close_CCI_short',
+        'close_CCI_medium',
+        'close_CCI_long',
+        'close_CCI_short_hma_14',
+        'close_CCI_medium_hma_14',
+        'close_CCI_long_hma_14',
+        'close_CCI_short_hma_18',
+        'close_CCI_medium_hma_18',
+        'close_CCI_long_hma_18',
+        'close_CCI_short_hma_22',
+        'close_CCI_medium_hma_22',
+        'close_CCI_long_hma_22',
+        'close_CCI_short_hma_14_slope',
+        'close_CCI_short_hma_18_slope',
+        'close_CCI_short_hma_22_slope',
+
+        # calculate_technical_indicators
+        'close_ROC_short',
+        'close_ROC_short_EMA_12',
+        'close_ROC_medium',
+        'close_ROC_medium_EMA_12',
+        'close_ROC_long',
+        'close_ROC_long_EMA_12',
+        'close_RSI_short',
+        'close_RSI_short_EMA_12',
+        'close_RSI_medium',
+        'close_RSI_medium_EMA_12',
+        'close_RSI_long',
+        'close_RSI_long_EMA_12',
+        'close_PPO_short',
+        'close_PPO_medium',
+        'close_PPO_long',
+        'close_Stoch_%K_short',
+        'close_Stoch_%D_short',
+        'close_Stoch_%K_medium',
+        'close_Stoch_%D_medium',
+        'close_Stoch_%K_long',
+        'close_Stoch_%D_long',
+        
+        #add_technical_indicators
+        'hma_long_term_slope_percent_positive_75_ROC_short',
+        'hma_long_term_slope_percent_positive_75_ROC_medium',
+        'hma_long_term_slope_percent_positive_75_ROC_long',
+        'hma_long_term_slope_percent_positive_75_CCI_short',
+        'trend_buy_ROC_short',
+        'trend_buy_ROC_medium',
+        'trend_buy_ROC_long',
+        'trend_buy_RSI_short',
+        'trend_buy_RSI_medium',
+        'trend_buy_RSI_long',
+        'trend_buy_PPO_short',
+        'trend_buy_PPO_medium',
+        'trend_buy_PPO_long',
+        'trend_buy_Stoch_%K_short',
+        'trend_buy_Stoch_%K_medium',
+        'trend_buy_Stoch_%K_long',
+        'trend_buy_CCI_short',
+        'trend_buy_CCI_medium',
+        'trend_buy_CCI_long',
+
+        # add_long_term_slope_percentages
+        'hma_long_term_slope_percent_positive_20',
+        'hma_long_term_slope_percent_positive_50',
+        'hma_long_term_slope_percent_positive_75',
+        'hma_long_term_slope_percent_positive_100',
+        'hma_long_term_slope_percent_positive_150',
+        'hma_long_term_slope_percent_positive_200',
+        'hma_long_term_slope_percent_positive_250',
+        
+        'hma_long_term_slope_percent_positive_75_RSI_short',
+        'hma_long_term_slope_percent_positive_75_RSI_medium',
+        'hma_long_term_slope_percent_positive_75_RSI_long',
+        'hma_long_term_slope_percent_positive_75_PPO_short',
+        'hma_long_term_slope_percent_positive_75_PPO_medium',
+        'hma_long_term_slope_percent_positive_75_PPO_long',
+        'hma_long_term_slope_percent_positive_75_Stoch_%K_short',
+        'hma_long_term_slope_percent_positive_75_Stoch_%K_medium',
+        'hma_long_term_slope_percent_positive_75_Stoch_%K_long',
+        'hma_long_term_slope_percent_positive_75_CCI_medium',
+        'hma_long_term_slope_percent_positive_75_CCI_long',
+        
+        # add_long_term_slope_percentages
+        'hma_long_term_slope_percent_positive_300',
+        'hma_long_term_slope_percent_positive_350',
+        'hma_long_term_slope_percent_positive_percentage_distance_20_350',
+        'hma_long_term_slope_percent_positive_percentage_distance_50_350',
+        'hma_long_term_distance_10_75', 
+        'hma_long_term_distance_20_200',
+
+        # add_price_position_indicators
+        'close_below_price_slope_hma_long_term_150',
+        'close_below_price_slope_hma_long_term_75',
+        'close_below_price_slope_hma_long_term_40',
+        'close_below_price_slope_hma_long_term_30',
+        'close_below_price_slope_hma_long_term_25',
+        'close_below_price_slope_hma_long_term_20',
+        'close_below_price_slope_hma_long_term_15',
+        'close_below_price_slope_hma_long_term_10',
+        'close_below_price_slope_hma_long_term_5',
+        
+        # Count feature
+        'close_below_hma_count',
+        
+        # Sequential crossover indicators
+        'close_between_hma_75_150',
+        'close_between_hma_40_75',
+        'close_between_hma_30_40',
+        'close_between_hma_25_30',
+        'close_between_hma_20_25',
+        'close_between_hma_15_20',
+        'close_between_hma_10_15',
+        'close_between_hma_5_10',
+
+        #hma_distance_columns 
+        'close_distance_hma_10',
+        'close_distance_hma_15',
+        'close_distance_hma_20',
+        'close_distance_hma_25',
+        'close_distance_hma_30',
+        'close_distance_hma_40',
+        'close_distance_hma_75',
+        'close_distance_hma_150',
+
+        # calculate_hma_cross_period_features
+        'distance_hma_5_20',
+        'distance_hma_5_40',
+
+        # calculate_trend_coherence_features
+        'trend_coherence_20_40',
+        'trend_coherence_40_75',
+
+        # calculate_volatility_adjusted_momentum_features
+        'vol_adj_momentum_10',
+        'vol_adj_momentum_20',
+        'vol_adj_momentum_40',
+        'vol_adj_momentum_quality_10',
+        'vol_adj_momentum_quality_20',
+        'vol_adj_momentum_quality_40',
+
+        ###### add_std_deviation_features #######
+        # Base standard deviation columns
+        'close_std_40',
+        'close_std_30',
+        'close_std_20',
+        
+        # Standard deviations above/below HMA
+        'close_std_dev_below_hma_40',
+        'close_std_dev_above_hma_40',
+        'close_std_dev_below_hma_30',
+        'close_std_dev_above_hma_30',
+        'close_std_dev_below_hma_20',
+        'close_std_dev_above_hma_20',
+        
+        # Total distance in standard deviations
+        'close_std_dev_total_distance_40',
+        'close_std_dev_total_distance_30',
+        'close_std_dev_total_distance_20',
+        
+        # Exponentially weighted standard deviation
+        'close_std_ewm_40',
+        'close_std_ewm_30',
+        'close_std_ewm_20',
+        
+        # Relative volatility
+        'close_std_relative_40',
+        'close_std_relative_30',
+        'close_std_relative_20',
+        
+        # Volatility-adjusted distances
+        'close_vol_adj_distance_hma_40',
+        'close_vol_adj_distance_hma_30',
+        'close_vol_adj_distance_hma_20',
+        
+        # Extreme deviation indicators (1 std)
+        'close_std_dev_extreme_below_40_1',
+        'close_std_dev_extreme_above_40_1',
+        'close_std_dev_extreme_below_30_1',
+        'close_std_dev_extreme_above_30_1',
+        'close_std_dev_extreme_below_20_1',
+        'close_std_dev_extreme_above_20_1',
+        
+        # Extreme deviation indicators (2 std)
+        'close_std_dev_extreme_below_40_2',
+        'close_std_dev_extreme_above_40_2',
+        'close_std_dev_extreme_below_30_2',
+        'close_std_dev_extreme_above_30_2',
+        'close_std_dev_extreme_below_20_2',
+        'close_std_dev_extreme_above_20_2',
+        
+        # Extreme deviation indicators (3 std)
+        'close_std_dev_extreme_below_40_3',
+        'close_std_dev_extreme_above_40_3',
+        'close_std_dev_extreme_below_30_3',
+        'close_std_dev_extreme_above_30_3',
+        'close_std_dev_extreme_below_20_3',
+        'close_std_dev_extreme_above_20_3',
+        
+        # Rolling max of standard deviations
+        'close_std_dev_max_40',
+        'close_std_dev_max_30',
+        'close_std_dev_max_20',
+        
+        # Cross-period features
+        'close_std_ratio_short_long',  
+        'close_std_dev_distance_diff',  
+        
+        # pre-calculated 
+        'trend_buy_autocorr_150_1',
+        'close_autocorr_150_1',
+        'hma_long_term_slope_percent_positive_250_autocorr_150_1',
+        'hma_long_term_slope_150_autocorr_150_1',
+        'trend_buy_150_autocorr_150_1',
+        
+        # add_candle_pattern_features
+        'green_candle', 
+        'green_candle_2',
+        'green_candle_3',
+        'red_candle', 
+        'red_candle_2', 
+        'red_candle_3',
+        'green_candle_raw',
+        'red_candle_raw',
+        'green_candle_2_raw',
+        'red_candle_2_raw',
+        'green_candle_3_raw',
+        'red_candle_3_raw',
+        
+        # add_slope_features
+        'slope_2_positive',
+        'slope_3_positive',
+        'slope_4_positive',
+        'slope_5_positive',
+        'slope_10_positive',
+        'slope_15_positive',
+        'slope_20_positive',
+        'slope_25_positive',
+        'slope_50_positive',
+        'slope_100_positive',
+        'slope_200_positive',
+        'kama_slope_2_positive',
+        'kama_slope_3_positive',
+        'kama_slope_4_positive',
+        'kama_slope_5_positive',
+        'kama_slope_10_positive',
+        'kama_slope_15_positive',
+        'kama_slope_20_positive',
+        'kama_slope_25_positive',
+        'kama_slope_50_positive',
+        'kama_slope_100_positive',
+        'kama_slope_200_positive',
+        'slope_3_positive_raw',
+        'slope_4_positive_raw',
+        'slope_5_positive_raw',
+        'slope_10_positive_raw',
+        'slope_15_positive_raw',
+        'slope_20_positive_raw',
+
+        # add_long_term_hma_features
+        'hma_long_term_slope_5_positive',
+        'hma_long_term_slope_10_positive',
+        'hma_long_term_slope_15_positive',
+        'hma_long_term_slope_20_positive',
+        'hma_long_term_slope_30_positive',
+        'hma_long_term_slope_40_positive',
+        'hma_long_term_slope_50_positive',
+        'hma_long_term_slope_75_positive',
+        'hma_long_term_slope_100_positive',
+        'hma_long_term_slope_150_positive',
+        'hma_long_term_slope_200_positive',
+        'hma_long_term_slope_250_positive',
+        'hma_long_term_slope_300_positive',
+        'hma_long_term_slope_350_positive',
+
+
+        # add_custom_trend_feature
+        'trend_buy_threshold',
+        'trend_buy',
+        'trend_buy_threshold_0_25_30',
+        'trend_buy_threshold_0_30_35',
+        'trend_buy_threshold_0_35_40',
+        'trend_buy_threshold_0_40_45',
+        'trend_buy_threshold_0_45_50',
+        'trend_buy_threshold_0_50_55',
+        'trend_buy_threshold_0_55_60',
+        'trend_buy_threshold_0_60_65',
+        'trend_buy_threshold_0_65_70',
+        'trend_buy_threshold_0_70_plus',
+        'trend_buy_2_5_24', 
+        'trend_slope_combined_buy_2_5_24_9',
+        'trend_slope_2nd_derivative_buy_2_5_24_9_5',
+        'trend_buy_2_15_24', 
+        'trend_slope_combined_buy_2_15_24_9',
+        'trend_slope_2nd_derivative_buy_2_15_24_9_5',
+        'trend_buy_2_30_24', 
+        'trend_slope_combined_buy_2_30_24_9',
+        'trend_slope_2nd_derivative_buy_2_30_24_9_5',
+        'trend_buy_2_60_24', 
+        'trend_slope_combined_buy_2_60_24_9',
+        'trend_slope_2nd_derivative_buy_2_60_24_9_5',
+        'trend_buy_2_100_24', 
+        'trend_slope_combined_buy_2_100_24_9',
+        'trend_slope_2nd_derivative_buy_2_100_24_9_5',
+        'trend_buy_2_200_24',
+        'trend_slope_combined_buy_2_200_24_9',
+        'trend_slope_2nd_derivative_buy_2_200_24_9_5',
+        'trend_buy_2_300_24',
+        'trend_slope_combined_buy_2_300_24_9',
+        'trend_slope_2nd_derivative_buy_2_300_24_9_5',
+        'trend_buy_2_2_5', 
+        'trend_slope_combined_buy_2_2_5_3', 
+        'trend_slope_2nd_derivative_buy_2_2_5_3_3', 
+        'trend_buy_2_3_5',
+        'trend_slope_combined_buy_2_3_5_3', 
+        'trend_slope_2nd_derivative_buy_2_3_5_3_3', 
+        'trend_buy_2_4_5', 
+        'trend_slope_combined_buy_2_4_5_3', 
+        'trend_slope_2nd_derivative_buy_2_4_5_3_3',
+        'trend_buy_3_4_5', 
+        'trend_buy_4_4_5', 
+        'trend_buy_5_4_5',
+
+        #misc_trend_buy_features
+        'trend_buy_10',
+        'trend_buy_30',
+        'trend_buy_60',
+        'trend_buy_150',
+        'trend_buy_300',
+        'trend_buy_hma_100',
+        'trend_buy_hma_300',
+        'trend_buy_hma_500',
+        'trend_buy_percentage_distance_10',
+        'trend_buy_percentage_distance_150',
+
+        # add_entropy_features
+        'ADX_14_mean_300',
+        'ADX_30_mean_300',
+        'hma_crossing_rate_5_20',
+        'hma_crossing_rate_15_40',
+        'cov_trailing_trend_buy_400', 
+
+        # cross over
+        'trend_slope_2nd_derivative_buy_periods_since_cross_over',
+        'trend_buy_periods_since_cross_over', 
+        'hma_long_term_slope_20_periods_since_cross_over', 
+        'hma_long_term_slope_50_periods_since_cross_over', 
+        'hma_long_term_slope_75_periods_since_cross_over', 
+        'hma_long_term_slope_100_periods_since_cross_over', 
+        'hma_long_term_slope_150_periods_since_cross_over', 
+        'hma_long_term_slope_200_periods_since_cross_over', 
+        'hma_long_term_slope_250_periods_since_cross_over', 
+        'hma_long_term_slope_300_periods_since_cross_over', 
+        'hma_long_term_slope_350_periods_since_cross_over', 
+
+        # percentiles 
+        'close_raw_percentile_5', 
+        'close_raw_percentile_10', 
+        'close_raw_percentile_20',
+        'close_raw_percentile_50', 
+        'close_raw_percentile_100', 
+        'close_raw_percentile_200', 
+        'close_percentile_5', 
+        'close_percentile_10', 
+        'close_percentile_20',
+        'close_percentile_50', 
+        'close_percentile_100', 
+        'close_percentile_200', 
+
+        # trailing z-score 
+        'close_raw_zscore_20', 
+        'close_raw_zscore_100',
+        'close_raw_zscore_200', 
+        'close_raw_zscore_500', 
+        'close_zscore_20', 
+        'close_zscore_100', 
+        'close_zscore_200', 
+        'close_zscore_500', 
+
+        #re-set features
+        'initial_price_increase',
+        'initial_price_increase_z_score', 
+        'initial_price_change_zscore_gt_1',
+        'initial_price_change_zscore_gt_2',
+        'initial_price_change_zscore_gt_3',
+        'initial_price_change_zscore_lt_-1',
+        'initial_price_change_zscore_lt_-2',
+        'initial_price_change_zscore_lt_-3',
+        'day_trend_3',
+        'day_trend_5',
+        'day_trend_7',
+        'day_trend_15',
+        'day_trend_20',
+        'day_trend_25',
+        'day_trend_400',
+        'day_trend_400_v2',
+        'day_trend_15_ema_10',
+        'day_trend_15_ema_15',
+        'day_trend_15_ema_20',
+        'day_trend_20_ema_15',
+        'day_trend_25_ema_15',
+        'day_trend_400_ema_10',
+        'day_trend_400_ema_10_v2',
+        'day_trend_15_hma_15',
+        'day_trend_15_hma_20',
+        'day_trend_15_hma_25',
+        'day_trend_15_hma_30',
+        'day_trend_20_hma_25',
+        'day_trend_25_hma_25',
+        'day_trend_15_ema_15_slope',
+        'day_trend_15_ema_20_slope',
+        'day_trend_25_hma_25_slope',
+        'day_trend_400_ema_10_v2_slope',
+        'day_trend_15_ema_20_slope_ema_20',
+        'day_trend_25_hma_25_slope_hma_10',
+        'day_trend_15_ema_20_2nd_deriv',
+        'day_trend_25_hma_25_2nd_deriv',
+        'day_trend_15_ema_20_2nd_deriv_ema_10',
+        'day_rsi_20',
+        'day_slope_15',
+        'day_slope_20',
+        'day_slope_25',
+        'day_trend_15_above_0.5',
+        'day_trend_20_above_0.5',
+        'day_trend_25_above_0.5',
+        'day_trend_400_v2_above_0.5',
+        'day_trend_15_ema_15_above_0.5',
+        'day_trend_20_ema_15_above_0.5',
+        'day_trend_25_ema_15_above_0.5',
+        'day_trend_400_ema_10_v2_above_0.5',
+        'day_trend_25_hma_25_minus_400_ema_10_v2',
+        'day_trend_25_hma_25_minus_400_ema_10_v2_slope',
+        'day_trend_25_hma_25_minus_400_ema_10_v2_slope_hma',
+        'day_trend_25_hma_25_minus_400_ema_10_v2_2nd_deriv',
+        'daily_min_value',
+
+        # RNN Predictions
+        'close_slope_15_2_t1_diff',
+        'close_slope_15_2_t1_diff_positive',
+        'close_slope_15_2_t1_prediction_positive',
+        
+        'close_slope_15_2_t2_diff',
+        'close_slope_15_2_t2_diff_positive',
+        'close_slope_15_2_t2_prediction_positive',
+
+        'close_slope_15_2_t1_prediction',
+        'close_slope_15_2_t3_diff',
+        'close_slope_15_2_t3_diff_positive',
+        'close_slope_15_2_t3_prediction_positive',
+
+        'close_slope_25_2_t1_prediction',
+        'close_slope_25_2_t1_diff',
+        'close_slope_25_2_t1_diff_positive',
+        'close_slope_25_2_t1_prediction_positive',
+        
+        'close_slope_25_2_t2_diff',
+        'close_slope_25_2_t2_diff_positive',
+        'close_slope_25_2_t2_prediction_positive',
+        
+        'close_slope_25_2_t3_diff',
+        'close_slope_25_2_t3_diff_positive',
+        'close_slope_25_2_t3_prediction_positive',
+        
+        'close_slope_25_2_t4_diff',
+        'close_slope_25_2_t4_diff_positive',
+        'close_slope_25_2_t4_prediction_positive',
+
+        'close_slope_25_2_t5_diff',
+        'close_slope_25_2_t5_diff_positive',
+        'close_slope_25_2_t5_prediction_positive',
+
+        'close_slope_35_2_t1_prediction',
+        'close_slope_35_2_t1_diff',
+        'close_slope_35_2_t1_diff_positive',
+        'close_slope_35_2_t1_prediction_positive',
+        
+        'close_slope_35_2_t2_diff',
+        'close_slope_35_2_t2_diff_positive',
+        'close_slope_35_2_t2_prediction_positive',
+        
+        'close_slope_35_2_t3_diff',
+        'close_slope_35_2_t3_diff_positive',
+        'close_slope_35_2_t3_prediction_positive',
+        
+        'close_slope_35_2_t4_diff',
+        'close_slope_35_2_t4_diff_positive',
+        'close_slope_35_2_t4_prediction_positive',
+
+        'close_slope_45_2_t1_prediction',
+        'close_slope_45_2_t1_diff',
+        'close_slope_45_2_t1_diff_positive',
+        'close_slope_45_2_t1_prediction_positive',
+        
+        'close_slope_45_2_t2_diff',
+        'close_slope_45_2_t2_diff_positive',
+        'close_slope_45_2_t2_prediction_positive',
+        
+        'close_slope_45_2_t3_diff',
+        'close_slope_45_2_t3_diff_positive',
+        'close_slope_45_2_t3_prediction_positive',
+
+        'close_slope_45_2_t4_prediction',
+        'close_slope_45_2_t4_diff',
+        'close_slope_45_2_t4_diff_positive',
+        'close_slope_45_2_t4_prediction_positive',
+
+        'std_dev_above_zero_15_t1',
+        'std_dev_above_zero_15_t2',
+        'std_dev_above_zero_15_t3',
+        'std_dev_above_zero_25_t1',
+        'std_dev_above_zero_25_t2',
+        'std_dev_above_zero_25_t3',
+        'std_dev_above_zero_25_t4',
+        'std_dev_above_zero_35_t1',
+        'std_dev_above_zero_35_t2',
+        'std_dev_above_zero_35_t3',
+        'std_dev_above_zero_35_t4',
+
+        'close_raw_CCI_hma_14_t1_prediction',
+        'close_CCI_short_raw_hma_14_t1_diff',
+        'close_CCI_short_raw_hma_14_t1_diff_positive',
+        'close_raw_CCI_hma_14_t1_prediction_positive',
+        
+        'close_raw_CCI_hma_14_t2_prediction',
+        'close_CCI_short_raw_hma_14_t2_diff',
+        'close_CCI_short_raw_hma_14_t2_diff_positive',
+        'close_raw_CCI_hma_14_t2_prediction_positive',
+
+        'close_raw_CCI_hma_14_t3_prediction',
+        'close_CCI_short_raw_hma_14_t3_diff',
+        'close_CCI_short_raw_hma_14_t3_diff_positive',
+        'close_raw_CCI_hma_14_t3_prediction_positive',
+
+        'close_raw_CCI_hma_18_t3_prediction',
+        'close_CCI_short_raw_hma_18_t3_diff',
+        'close_CCI_short_raw_hma_18_t3_diff_positive',
+        'close_raw_CCI_hma_18_t3_prediction_positive',
+
+        'close_raw_CCI_hma_22_t3_prediction',
+        'close_CCI_short_raw_hma_22_t3_diff',
+        'close_CCI_short_raw_hma_22_t3_diff_positive',
+        'close_raw_CCI_hma_22_t3_prediction_positive',
+
+
+        'close_slope_25_2_binary_t3_prediction', 
+        'close_slope_25_2_binary_t3_prediction_positive', 
+        'close_slope_25_2_binary_t4_prediction', 
+        'close_slope_25_2_binary_t4_prediction_positive',
+        'close_slope_25_2_binary_t5_prediction',
+        'close_slope_25_2_binary_t5_prediction_positive',
+
+
+        'sqz_momentum_slope_30_15min_t1_prediction',
+        'sqz_momentum_slope_30_15min_t1_diff',
+        'sqz_momentum_slope_30_15min_t1_prediction_positive',
+        'sqz_momentum_slope_30_15min_t1_diff_positive',
+        'sqz_momentum_slope_30_15min_t2_prediction',
+        'sqz_momentum_slope_30_15min_t2_diff',
+        'sqz_momentum_slope_30_15min_t2_prediction_positive',
+        'sqz_momentum_slope_30_15min_t2_diff_positive',
+        'sqz_momentum_slope_30_15min_t3_prediction',
+        'sqz_momentum_slope_30_15min_t3_diff',
+        'sqz_momentum_slope_30_15min_t3_prediction_positive',
+        'sqz_momentum_slope_30_15min_t3_diff_positive',
+        'sqz_momentum_slope_30_15min_t4_prediction',
+        'sqz_momentum_slope_30_15min_t4_diff',
+        'sqz_momentum_slope_30_15min_t4_prediction_positive',
+        'sqz_momentum_slope_30_15min_t4_diff_positive', 
+        'sqz_momentum_30_15min_t1_prediction',
+        'sqz_momentum_30_15min_t1_diff',
+        'sqz_momentum_30_15min_t1_prediction_positive',
+        'sqz_momentum_30_15min_t1_diff_positive',
+        'sqz_momentum_30_15min_t2_prediction',
+        'sqz_momentum_30_15min_t2_diff',
+        'sqz_momentum_30_15min_t2_prediction_positive',
+        'sqz_momentum_30_15min_t2_diff_positive',
+        'sqz_momentum_30_15min_t3_prediction',
+        'sqz_momentum_30_15min_t3_diff',
+        'sqz_momentum_30_15min_t3_prediction_positive',
+        'sqz_momentum_30_15min_t3_diff_positive',
+        'sqz_momentum_30_15min_t4_prediction',
+        'sqz_momentum_30_15min_t4_diff',
+        'sqz_momentum_30_15min_t4_prediction_positive',
+        'sqz_momentum_30_15min_t4_diff_positive',
+
+        'RSI_7_hma_15_15min_t1_prediction',
+        'RSI_7_hma_15_15min_t1_diff',
+        'RSI_7_hma_15_15min_t1_diff_positive',
+        'RSI_7_hma_15_15min_t2_prediction',
+        'RSI_7_hma_15_15min_t2_diff',
+        'RSI_7_hma_15_15min_t2_diff_positive',
+        'RSI_7_hma_15_15min_t3_prediction',
+        'RSI_7_hma_15_15min_t3_diff',
+        'RSI_7_hma_15_15min_t3_diff_positive',
+        'RSI_7_hma_15_15min_t4_prediction',
+        'RSI_7_hma_15_15min_t4_diff',
+        'RSI_7_hma_15_15min_t4_diff_positive',
+        'RSI_14_hma_15_15min_t1_prediction',
+        'RSI_14_hma_15_15min_t1_diff',
+        'RSI_14_hma_15_15min_t1_diff_positive',
+        'RSI_14_hma_15_15min_t2_prediction',
+        'RSI_14_hma_15_15min_t2_diff',
+        'RSI_14_hma_15_15min_t2_diff_positive',
+        'RSI_14_hma_15_15min_t3_prediction',
+        'RSI_14_hma_15_15min_t3_diff',
+        'RSI_14_hma_15_15min_t3_diff_positive',
+        'RSI_14_hma_15_15min_t4_prediction',
+        'RSI_14_hma_15_15min_t4_diff',
+        'RSI_14_hma_15_15min_t4_diff_positive',
+        'RSI_28_hma_15_15min_t1_prediction',
+        'RSI_28_hma_15_15min_t1_diff',
+        'RSI_28_hma_15_15min_t1_diff_positive',
+        'RSI_28_hma_15_15min_t2_prediction',
+        'RSI_28_hma_15_15min_t2_diff',
+        'RSI_28_hma_15_15min_t2_diff_positive',
+        'RSI_28_hma_15_15min_t3_prediction',
+        'RSI_28_hma_15_15min_t3_diff',
+        'RSI_28_hma_15_15min_t3_diff_positive',
+        'RSI_28_hma_15_15min_t4_prediction',
+        'RSI_28_hma_15_15min_t4_diff',
+        'RSI_28_hma_15_15min_t4_diff_positive',
+ 
+
+        'close_slope_15_5_zscore_t1_prediction',
+        'close_slope_15_5_zscore_t1_diff',
+        'close_slope_15_5_zscore_t1_diff_positive',
+        'close_slope_15_5_zscore_t1_prediction_positive',
+        'close_slope_15_5_zscore_t2_prediction',
+        'close_slope_15_5_zscore_t2_diff', 
+        'close_slope_15_5_zscore_t2_diff_positive',
+        'close_slope_15_5_zscore_t2_prediction_positive',
+        'close_slope_15_5_zscore_t3_prediction',
+        'close_slope_15_5_zscore_t3_diff',
+        'close_slope_15_5_zscore_t3_diff_positive', 
+        'close_slope_15_5_zscore_t3_prediction_positive',
+        'close_slope_15_5_zscore_t4_prediction',
+        'close_slope_15_5_zscore_t4_diff',
+        'close_slope_15_5_zscore_t4_diff_positive',
+        'close_slope_15_5_zscore_t4_prediction_positive',
+        'close_slope_25_5_zscore_t1_prediction',
+        'close_slope_25_5_zscore_t1_diff',
+        'close_slope_25_5_zscore_t1_diff_positive',
+        'close_slope_25_5_zscore_t1_prediction_positive',
+        'close_slope_25_5_zscore_t2_prediction',
+        'close_slope_25_5_zscore_t2_diff',
+        'close_slope_25_5_zscore_t2_diff_positive',
+        'close_slope_25_5_zscore_t2_prediction_positive',
+        'close_slope_25_5_zscore_t3_prediction',
+        'close_slope_25_5_zscore_t3_diff',
+        'close_slope_25_5_zscore_t3_diff_positive',
+        'close_slope_25_5_zscore_t3_prediction_positive',
+        'close_slope_25_5_zscore_t4_prediction',
+        'close_slope_25_5_zscore_t4_diff',
+        'close_slope_25_5_zscore_t4_diff_positive',
+        'close_slope_25_5_zscore_t4_prediction_positive',
+        'close_slope_35_5_zscore_t1_prediction',
+        'close_slope_35_5_zscore_t1_diff',
+        'close_slope_35_5_zscore_t1_diff_positive',
+        'close_slope_35_5_zscore_t1_prediction_positive',
+        'close_slope_35_5_zscore_t2_prediction',
+        'close_slope_35_5_zscore_t2_diff',
+        'close_slope_35_5_zscore_t2_diff_positive',
+        'close_slope_35_5_zscore_t2_prediction_positive',
+        'close_slope_35_5_zscore_t3_prediction',
+        'close_slope_35_5_zscore_t3_diff',
+        'close_slope_35_5_zscore_t3_diff_positive',
+        'close_slope_35_5_zscore_t3_prediction_positive',
+        'close_slope_35_5_zscore_t4_prediction',
+        'close_slope_35_5_zscore_t4_diff',
+        'close_slope_35_5_zscore_t4_diff_positive',
+        'close_slope_35_5_zscore_t4_prediction_positive',
+        'close_slope_45_5_zscore_t1_prediction',
+        'close_slope_45_5_zscore_t1_diff',
+        'close_slope_45_5_zscore_t1_diff_positive',
+        'close_slope_45_5_zscore_t1_prediction_positive',
+        'close_slope_45_5_zscore_t2_prediction',
+        'close_slope_45_5_zscore_t2_diff',
+        'close_slope_45_5_zscore_t2_diff_positive',
+        'close_slope_45_5_zscore_t2_prediction_positive',
+        'close_slope_45_5_zscore_t3_prediction',
+        'close_slope_45_5_zscore_t3_diff',
+        'close_slope_45_5_zscore_t3_diff_positive',
+        'close_slope_45_5_zscore_t3_prediction_positive',
+        'close_slope_45_5_zscore_t4_prediction',
+        'close_slope_45_5_zscore_t4_diff',
+        'close_slope_45_5_zscore_t4_diff_positive',
+        'close_slope_45_5_zscore_t4_prediction_positive',
+
+
+    ]
+    
+    # Copy the features
+    df_features[other_features] = ticker_df_adjusted[other_features]
+    
+    return df_features
