@@ -186,8 +186,18 @@ def get_fitted_scaler(X_train, scaler_type='standard'):
     
     # Technical indicators to exclude from scaling
     technical_indicators = [
-        'cci', 'roc', 'rsi', 'ppo', 'stoch',
-        'close_raw_percentile', 'close_percentile'
+        'cci', 
+        'roc', 
+        'rsi', 
+        'ppo', 
+        'stoch',
+        'close_raw_percentile', 
+        'close_percentile', 
+        'close_raw', 
+        'vwap_zscore', 
+        'close_raw_percentile_20_15min',
+        'trailing_return_20_zscore',
+        'sqz_momentum' 
     ]
     
     # Identify binary features (columns with 2 unique values of 0 and 1)
