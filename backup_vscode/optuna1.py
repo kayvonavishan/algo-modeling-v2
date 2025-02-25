@@ -607,12 +607,17 @@ def objective(trial):
             ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t2(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t2, scaler_sqz_momentum_30_15min_t2)
             ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t3(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t3, scaler_sqz_momentum_30_15min_t3)
             ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t4(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t4, scaler_sqz_momentum_30_15min_t4)
+            ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t5(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t5, scaler_sqz_momentum_30_15min_t5)
+            ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t6(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t6, scaler_sqz_momentum_30_15min_t6)
+            ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t7(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t7, scaler_sqz_momentum_30_15min_t7)
+            ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t8(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t8, scaler_sqz_momentum_30_15min_t8)
 
             # squeeze momentum
             ticker_df_adjusted = predict_sqz_momentum_30_15min_t1(ticker_df_adjusted, model_sqz_momentum_30_15min_t1, scaler_sqz_momentum_30_15min_t1)
             ticker_df_adjusted = predict_sqz_momentum_30_15min_t2(ticker_df_adjusted, model_sqz_momentum_30_15min_t2, scaler_sqz_momentum_30_15min_t2)
             ticker_df_adjusted = predict_sqz_momentum_30_15min_t3(ticker_df_adjusted, model_sqz_momentum_30_15min_t3, scaler_sqz_momentum_30_15min_t3)
             ticker_df_adjusted = predict_sqz_momentum_30_15min_t4(ticker_df_adjusted, model_sqz_momentum_30_15min_t4, scaler_sqz_momentum_30_15min_t4)
+            ticker_df_adjusted = predict_sqz_momentum_30_15min_t5(ticker_df_adjusted, model_sqz_momentum_30_15min_t5, scaler_sqz_momentum_30_15min_t5)
 
             # RSI-7 predictions
             ticker_df_adjusted = predict_RSI_7_hma_15_15min_t1(ticker_df_adjusted, model_RSI_7_hma_15_15min_t1, scaler_RSI_7_hma_15_15min_t1)
@@ -656,6 +661,29 @@ def objective(trial):
             ticker_df_adjusted = predict_hma45_5_zscore_t3(ticker_df_adjusted, model_hma45_5_zscore_t3, scaler_hma45_5_zscore_t3)
             ticker_df_adjusted = predict_hma45_5_zscore_t4(ticker_df_adjusted, model_hma45_5_zscore_t4, scaler_hma45_5_zscore_t4)
             
+            # VWAP 
+            ticker_df_adjusted = predict_vwap_zscore_10_15min_t6(ticker_df_adjusted, model_vwap_zscore_10_15min_t6, scaler_vwap_zscore_10_15min_t6)
+            ticker_df_adjusted = predict_vwap_zscore_10_15min_t7(ticker_df_adjusted, model_vwap_zscore_10_15min_t7, scaler_vwap_zscore_10_15min_t7)
+            ticker_df_adjusted = predict_vwap_zscore_10_15min_t8(ticker_df_adjusted, model_vwap_zscore_10_15min_t8, scaler_vwap_zscore_10_15min_t8)
+            ticker_df_adjusted = predict_vwap_zscore_10_15min_t9(ticker_df_adjusted, model_vwap_zscore_10_15min_t9, scaler_vwap_zscore_10_15min_t9)
+
+            # composite 
+            ticker_df_adjusted = create_logical_group_composites(ticker_df_adjusted, threshold=2.0)
+
+            # percentiles 
+            ticker_df_adjusted = predict_close_raw_percentile_20_15min_t1(ticker_df_adjusted, model_close_raw_percentile_20_15min_t1, scaler_close_raw_percentile_20_15min_t1)
+            ticker_df_adjusted = predict_close_raw_percentile_20_15min_t2(ticker_df_adjusted, model_close_raw_percentile_20_15min_t2, scaler_close_raw_percentile_20_15min_t2)
+            ticker_df_adjusted = predict_close_raw_percentile_50_15min_t1(ticker_df_adjusted, model_close_raw_percentile_50_15min_t1, scaler_close_raw_percentile_50_15min_t1)
+            ticker_df_adjusted = predict_close_raw_percentile_50_15min_t2(ticker_df_adjusted, model_close_raw_percentile_50_15min_t2, scaler_close_raw_percentile_50_15min_t2)
+            ticker_df_adjusted = predict_close_raw_percentile_50_15min_t3(ticker_df_adjusted, model_close_raw_percentile_50_15min_t3, scaler_close_raw_percentile_50_15min_t3)
+
+            # Trailing return z-score EMA predictions
+            ticker_df_adjusted = predict_trailing_return_20_zscore_ema_15min_t1(ticker_df_adjusted, model_trailing_return_20_zscore_ema_15min_t1, scaler_trailing_return_20_zscore_ema_15min_t1)
+            ticker_df_adjusted = predict_trailing_return_20_zscore_ema_15min_t2(ticker_df_adjusted, model_trailing_return_20_zscore_ema_15min_t2, scaler_trailing_return_20_zscore_ema_15min_t2)
+            ticker_df_adjusted = predict_trailing_return_20_zscore_ema_15min_t3(ticker_df_adjusted, model_trailing_return_20_zscore_ema_15min_t3, scaler_trailing_return_20_zscore_ema_15min_t3)
+            ticker_df_adjusted = predict_trailing_return_20_zscore_ema_15min_t4(ticker_df_adjusted, model_trailing_return_20_zscore_ema_15min_t4, scaler_trailing_return_20_zscore_ema_15min_t4)
+            ticker_df_adjusted = predict_trailing_return_20_zscore_ema_15min_t5(ticker_df_adjusted, model_trailing_return_20_zscore_ema_15min_t5, scaler_trailing_return_20_zscore_ema_15min_t5)
+
             # remove underlying RNN features 
             ticker_df_adjusted = remove_RNN_features(ticker_df_adjusted, feature_names)
 

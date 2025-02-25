@@ -12,12 +12,13 @@ import pandas as pd
 
 def features_for_RNN_models(df, periods=[45, 35, 25, 15, 10], slope_periods=[2, 5]):
     """
-    Add features including HMA values, slopes, z-scores, RSI, ROC, and squeeze momentum indicators.
+    Add features including HMA values, slopes, z-scores, RSI, ROC, squeeze momentum,
+    and new VWAP-based features.
     
     Parameters:
     -----------
     df : pandas.DataFrame
-        DataFrame containing 'close_raw', 'high_raw', and 'low_raw' columns
+        DataFrame containing 'close_raw', 'high_raw', 'low_raw', and 'volume' columns
     periods : list, optional
         List of periods for HMA calculation (default=[45, 35, 25, 15, 10])
     slope_periods : list, optional
@@ -30,10 +31,13 @@ def features_for_RNN_models(df, periods=[45, 35, 25, 15, 10], slope_periods=[2, 
         - DataFrame with added features
         - List of all feature names created by the function
     """
+    import talib
+    from ta.volume import VolumeWeightedAveragePrice
+    
     df_copy = df.copy()
     created_features = []
     
-    # Original HMA and slope features
+    # Original HMA and slope features for close_raw
     for period in periods:
         hma_values = calculate_hma(df_copy['close_raw'], period=period)
         hma_col = f'close_{period}_raw'
@@ -101,30 +105,65 @@ def features_for_RNN_models(df, periods=[45, 35, 25, 15, 10], slope_periods=[2, 
         df_copy[slope_col] = talib.LINEARREG_SLOPE(df_copy[sqz_col], timeperiod=period)
         created_features.append(slope_col)
     
-    return df_copy, created_features
-
-def remove_RNN_features(df, feature_names):
-    """
-    Remove all features created by features_for_RNN_models function from the DataFrame.
+    # --- New VWAP-based features ---
+    # Calculate VWAP using a rolling window of 26 bars
+    vwap_indicator = VolumeWeightedAveragePrice(
+        high=df_copy['high_raw'],
+        low=df_copy['low_raw'],
+        close=df_copy['close_raw'],
+        volume=df_copy['volume'],
+        window=26,  # rolling lookback period of 26 bars
+        fillna=True
+    )
+    df_copy['vwap'] = vwap_indicator.volume_weighted_average_price()
+    created_features.append('vwap')
     
-    Parameters:
-    -----------
-    df : pandas.DataFrame
-        DataFrame containing the RNN features to be removed
-    feature_names : list
-        List of feature names to remove, as returned by features_for_RNN_models
+    # Calculate the rolling z-score of VWAP using a 250-bar lookback
+    vwap_roll_mean = df_copy['vwap'].rolling(window=250).mean()
+    vwap_roll_std = df_copy['vwap'].rolling(window=250).std()
+    df_copy['vwap_zscore'] = (df_copy['vwap'] - vwap_roll_mean) / vwap_roll_std
+    created_features.append('vwap_zscore')
+    
+    # For each HMA period, compute the HMA of the vwap_zscore and then its slope.
+    vwap_hma_periods = [5, 10, 15, 20, 25]
+    for period in vwap_hma_periods:
+        hma_col = f'hma_vwap_zscore_{period}'
+        df_copy[hma_col] = calculate_hma(df_copy['vwap_zscore'], period=period)
+        created_features.append(hma_col)
         
-    Returns:
-    --------
-    pandas.DataFrame
-        DataFrame with RNN features removed
-    """
-    df_copy = df.copy()
+        slope_col = f'{hma_col}_slope'
+        df_copy[slope_col] = talib.LINEARREG_SLOPE(df_copy[hma_col], timeperiod=2)
+        created_features.append(slope_col)
+
+    ##### RETURNS FEATURES #####
+    trailing_return_periods = [5, 10, 20, 30]  # Different lookback periods for returns
+    zscore_lookback = 250  # Rolling window for z-score calculation
+    ema_period = 15  # EMA smoothing period
     
-    # Remove all features in the feature_names list
-    df_copy = df_copy.drop(columns=feature_names, errors='ignore')
+    # Loop over different trailing return periods
+    for period in trailing_return_periods:
+        prefix = f"trailing_return_{period}"
+        
+        # Step 1: Calculate trailing returns over the given period
+        df_copy[f'{prefix}'] = df_copy['close_raw'].pct_change(periods=period)
+        
+        # Step 2: Compute rolling mean and standard deviation for z-score calculation
+        df_copy[f'{prefix}_mean'] = df_copy[f'{prefix}'].rolling(window=zscore_lookback).mean()
+        df_copy[f'{prefix}_std'] = df_copy[f'{prefix}'].rolling(window=zscore_lookback).std()
+        
+        # Step 3: Compute rolling z-score for the trailing return
+        df_copy[f'{prefix}_zscore'] = (
+            (df_copy[f'{prefix}'] - df_copy[f'{prefix}_mean']) /
+            df_copy[f'{prefix}_std']
+        )
+        
+        # Step 4: Apply EMA smoothing to the z-score
+        df_copy[f'{prefix}_zscore_ema'] = (
+            df_copy[f'{prefix}_zscore'].ewm(span=ema_period, adjust=False).mean()
+        )
     
-    return df_copy
+    
+    return df_copy, created_features
 
 
 def add_trend_buy_threshold_columns(df, step=0.05, start=0.25, end=0.70):
