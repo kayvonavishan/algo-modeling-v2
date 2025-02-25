@@ -752,8 +752,8 @@ def load_scaler(scaler_path):
 # torch.cuda.empty_cache()
 
 # train_and_save_rnn_model(
-#     model_path='C:/Users/daraa/Desktop/algorithmic-trading-docs/sell_strategy/close_slope_35_2_raw_15min_t2_TEST.pth',
-#     scaler_path='C:/Users/daraa/Desktop/algorithmic-trading-docs/sell_strategy/close_slope_35_2_raw_15min_t2_scaler_TEST.pth',
+#     model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_slope_35_2_raw_15min_t2_TEST.pth',
+#     scaler_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_slope_35_2_raw_15min_t2_scaler_TEST.pth',
 #     master_df= df_features_master, #ticker_df_adjusted,
 #     columns_to_include=[
 #          'close_slope_45_2_raw',
@@ -775,8 +775,8 @@ def load_scaler(scaler_path):
 # torch.cuda.empty_cache()
 
 # train_and_save_nbeats_model(
-#     model_path='C:/Users/daraa/Desktop/algorithmic-trading-docs/sell_strategy/close_slope_25_2_raw_15min_t5.pth',
-#     scaler_path='C:/Users/daraa/Desktop/algorithmic-trading-docs/sell_strategy/close_slope_25_2_raw_15min_t5_scaler.pth',
+#     model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_slope_25_2_raw_15min_t5.pth',
+#     scaler_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_slope_25_2_raw_15min_t5_scaler.pth',
 #     master_df= df_features_master, 
 #     columns_to_include=[
 
