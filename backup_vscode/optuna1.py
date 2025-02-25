@@ -21,7 +21,8 @@ from algo_feature_engineering.features.tsa import compute_auto_correlation
 from algo_feature_engineering.labeling import triple_barrier_labels
 from algo_feature_engineering.features.utils import calculate_trend_vectorized 
 from algo_feature_engineering.features.tsa import calculate_weighted_distance
-from load_data import data_dict
+from load_data import load_and_process_data_dict
+from grouped_feature_functions import calculate_precomputed_features
 from algo_feature_engineering.features.base_model import (
     process_base_model,
     base_model_parameters
@@ -65,49 +66,13 @@ from RNN_load import *
 from RNN_features import *
 
 ######################
-# LIMIT CPU UTILIZATION
-######################
-limit_cpu_cores(0.9)
-
-######################
-# SET WORKING DIRECTORY / FILE NAMES
-######################
-# Usage
-working_dir = r'C:\Users\daraa\Desktop\vscode_python\optuna_dev'
-optuna_trials_dir = r'C:\Users\daraa\Desktop\vscode_python\optuna_dev\optuna_trials_dev'
-set_working_directory(working_dir)
-
-# this is where all model
-main_model_path = 'my_model_info.pkl'
-
-######################
 # OBJECTIVE FUNCTION 
 ######################
 
 # Define the objective function for Optuna
-def objective(trial):
+def objective(trial, data_dict):
 
     try:
-
-        import pandas as pd
-        import numpy as np
-        import plotly.graph_objects as go
-        import xgboost as xgb
-        from sklearn.metrics import accuracy_score, precision_score, f1_score, confusion_matrix
-        import numpy as np
-        import plotly.express as px
-        import plotly.graph_objects as go
-        import numpy as np
-        import pandas as pd
-        from sklearn.preprocessing import MinMaxScaler
-        import plotly.graph_objects as go
-        from itables import init_notebook_mode
-        init_notebook_mode(all_interactive=True) # makes all dataframes pretty
-        import os 
-        from tqdm import tqdm
-        import warnings
-        warnings.filterwarnings("ignore", category=UserWarning, module='optuna')
-        import talib
 
         ######################
         # MEMORY CHECK
@@ -117,13 +82,6 @@ def objective(trial):
         if memory_percent > 90:
             logging.warning("High memory usage detected at start of trial")
             gc.collect()
-
-
-        ######################
-        # SET TICKER LIST 
-        ######################
-        # set ticker list 
-        optuna_ticker_list = ['TQQQ']
    
         ######################
         # SET OPTUNA PARAMS
@@ -331,13 +289,7 @@ def objective(trial):
         
             #####################################
             # CREATE RAW PRICE AND SMOOTHED PRICE
-            #####################################
-            # define raw prices
-            ticker_df_adjusted['close_raw'] = ticker_df_adjusted['close']
-            ticker_df_adjusted['high_raw'] = ticker_df_adjusted['high']
-            ticker_df_adjusted['low_raw'] = ticker_df_adjusted['low']
-            ticker_df_adjusted['open_raw'] = ticker_df_adjusted['open']
-        
+            #####################################       
             # define smoothed prices 
             ticker_df_adjusted['close'] = calculate_hma(ticker_df_adjusted['close'], period=close_hma_smoothing)
             ticker_df_adjusted['high'] = calculate_hma(ticker_df_adjusted['high'], period=close_hma_smoothing)
@@ -349,15 +301,6 @@ def objective(trial):
             #####################################
             custom_periods = [70, 45, 25, 15, 10, 5, 4]
             ticker_df_adjusted = add_slope_features(ticker_df_adjusted, periods=custom_periods)
-        
-            ###############################################################
-            # CALCULATES SLOPE FOR DIFFERENT PERIODS AND APPLY HMA (RAW)
-            ################################################################
-            slope_periods = [30, 20, 10, 2]  # Ordered from largest to smallest
-            hma_period = 10
-            ticker_df_adjusted = add_raw_slope_features(ticker_df_adjusted, 
-                                                    slope_periods=slope_periods,
-                                                    hma_period=hma_period)
         
             ##############################
             # FEATURES FOR SMOOTHED PRICE
@@ -392,37 +335,6 @@ def objective(trial):
 
             # Calculate trend coherence features
             ticker_df_adjusted = calculate_trend_coherence_features(ticker_df_adjusted)
-
-        
-            ######################
-            # FEATURES FOR RAW PRICE
-            ######################
-            custom_periods = [350, 300, 250, 200, 150, 100, 75, 50, 40, 30, 25, 20, 15, 10, 5]
-            ticker_df_adjusted = add_long_term_hma_features_raw(ticker_df_adjusted, 
-                                                            periods=custom_periods,
-                                                            calculate_slopes=True,
-                                                            slope_period=2)
-
-            
-            # what percent of the of the time has hma_long_term_slope been positive? 
-            ticker_df_adjusted = add_raw_slope_trend_percentages(ticker_df_adjusted)
-
-            # percent diff
-            ticker_df_adjusted = add_raw_distance_metrics(ticker_df_adjusted)
-            
-            # price below the MA
-            custom_periods = [150, 75, 40, 30, 25, 20, 15, 10, 5]
-            ticker_df_adjusted = add_price_position_indicators_raw(ticker_df_adjusted, periods=custom_periods)
-
-            # st. dev. features
-            custom_periods = [40, 30, 20]
-            ticker_df_adjusted = add_std_deviation_features_raw(ticker_df_adjusted, periods=custom_periods)
-
-            # Calculate HMA distance features
-            ticker_df_adjusted = calculate_hma_distance_features_raw(ticker_df_adjusted)
-            
-            # Calculate HMA cross-period features
-            ticker_df_adjusted = calculate_hma_cross_period_features_raw(ticker_df_adjusted)
         
             ######################
             # MORE TRENDS
@@ -433,16 +345,6 @@ def objective(trial):
             # TREND_BUY_THRESHOLD OVER CERTAIN THRESHOLDS 
             ######################
             ticker_df_adjusted = add_trend_buy_threshold_columns(ticker_df_adjusted)
-
-            ######################
-            # CCI FEATURES (RAW)
-            ######################
-            ticker_df_adjusted = calculate_cci_features_raw(ticker_df_adjusted, calculate_hma)
-
-            ######################
-            # ROC/RSI/PPO/STOCH FEATURES (RAW)
-            ######################
-            ticker_df_adjusted = calculate_technical_indicators_raw(ticker_df_adjusted)
 
             ######################
             # CCI FEATURES (SMOOTH)
@@ -474,7 +376,6 @@ def objective(trial):
             # FEATURE: CANDLES 
             ######################
             ticker_df_adjusted = add_candle_pattern_features(ticker_df_adjusted,open_col='open',close_col='close')
-            ticker_df_adjusted = add_candle_pattern_features(ticker_df_adjusted,open_col='open_raw',close_col='close_raw')
                     
             ######################
             # VARFIOUS PRICE SLOPE FEATURES
@@ -510,16 +411,12 @@ def objective(trial):
             # Price Percentiles 
             #####################
             custom_windows = [200, 100, 50, 20, 10, 5]
-            ticker_df_adjusted = add_rolling_percentile_features(ticker_df_adjusted, windows=custom_windows, column='close_raw')
-
-            custom_windows = [200, 100, 50, 20, 10, 5]
             ticker_df_adjusted = add_rolling_percentile_features(ticker_df_adjusted, windows=custom_windows, column='close')
 
             ######################
             # Trailing z-score 
             ######################
             custom_windows = [500, 200, 100, 20]
-            ticker_df_adjusted = add_rolling_zscore_features(ticker_df_adjusted, windows=custom_windows, column='close_raw')
             ticker_df_adjusted = add_rolling_zscore_features(ticker_df_adjusted, windows=custom_windows, column='close')
 
         
@@ -554,138 +451,6 @@ def objective(trial):
             ######################
             custom_lookbacks = [300, 200, 100, 20, 15, 10, 7, 5, 3]
             ticker_df_adjusted = add_trailing_pct_change_atr_features(ticker_df_adjusted, lookbacks=custom_lookbacks)
-                    
-            ######################
-            # RNN PREDICTIONS FEATURES 
-            ######################
-            custom_periods = [100, 60, 45, 35, 25, 15, 10, 5, 4]
-            custom_slope_periods = [2, 5]
-            ticker_df_adjusted, feature_names = features_for_RNN_models(ticker_df_adjusted, 
-                                                    periods=custom_periods,
-                                                    slope_periods=custom_slope_periods)
-
-            # HMA 25 Binary predictions
-            ticker_df_adjusted = predict_hma25_binary_t3(ticker_df_adjusted, model_hma25_binary_t3)
-            ticker_df_adjusted = predict_hma25_binary_t4(ticker_df_adjusted, model_hma25_binary_t4, scaler_hma25_binary_t4)
-            ticker_df_adjusted = predict_hma25_binary_t5(ticker_df_adjusted, model_hma25_binary_t5, scaler_hma25_binary_t5)
-            
-            # CCI HMA 14 predictions
-            ticker_df_adjusted = predict_close_raw_cci_hma_14_t1(ticker_df_adjusted, model_close_raw_cci_hma_14_t1, scaler_close_raw_cci_hma_14_t1)
-            ticker_df_adjusted = predict_close_raw_cci_hma_14_t2(ticker_df_adjusted, model_close_raw_cci_hma_14_t2, scaler_close_raw_cci_hma_14_t2)
-            ticker_df_adjusted = predict_close_raw_cci_hma_14_t3(ticker_df_adjusted, model_close_raw_cci_hma_14_t3, scaler_close_raw_cci_hma_14_t3)
-            
-            # CCI HMA 18/22 predictions
-            ticker_df_adjusted = predict_close_raw_cci_hma_18_t3(ticker_df_adjusted, model_close_raw_cci_hma_18_t3, scaler_close_raw_cci_hma_18_t3)
-            ticker_df_adjusted = predict_close_raw_cci_hma_22_t3(ticker_df_adjusted, model_close_raw_cci_hma_22_t3, scaler_close_raw_cci_hma_22_t3)
-            
-            # HMA 15 predictions
-            ticker_df_adjusted = predict_hma15_t1(ticker_df_adjusted, model_hma15_t1, scaler_hma15_t1)
-            ticker_df_adjusted = predict_hma15_t2(ticker_df_adjusted, model_hma15_t2, scaler_hma15_t2)
-            ticker_df_adjusted = predict_hma15_t3(ticker_df_adjusted, model_hma15_t3, scaler_hma15_t3)
-            
-            # HMA 25 predictions
-            ticker_df_adjusted = predict_hma25_t1(ticker_df_adjusted, model_hma25_t1, scaler_hma25_t1)
-            ticker_df_adjusted = predict_hma25_t2(ticker_df_adjusted, model_hma25_t2, scaler_hma25_t2)
-            ticker_df_adjusted = predict_hma25_t3(ticker_df_adjusted, model_hma25_t3, scaler_hma25_t3)
-            ticker_df_adjusted = predict_hma25_t4(ticker_df_adjusted, model_hma25_t4, scaler_hma25_t4)
-            ticker_df_adjusted = predict_hma25_t5(ticker_df_adjusted, model_hma25_t5, scaler_hma25_t5)
-            
-            # HMA 35 predictions
-            ticker_df_adjusted = predict_hma35_t1(ticker_df_adjusted, model_hma35_t1, scaler_hma35_t1)
-            ticker_df_adjusted = predict_hma35_t2(ticker_df_adjusted, model_hma35_t2, scaler_hma35_t2)
-            ticker_df_adjusted = predict_hma35_t3(ticker_df_adjusted, model_hma35_t3, scaler_hma35_t3)
-            ticker_df_adjusted = predict_hma35_t4(ticker_df_adjusted, model_hma35_t4, scaler_hma35_t4)
-            
-            # HMA 45 predictions
-            ticker_df_adjusted = predict_hma45_t1(ticker_df_adjusted, model_hma45_t1, scaler_hma45_t1)
-            ticker_df_adjusted = predict_hma45_t2(ticker_df_adjusted, model_hma45_t2, scaler_hma45_t2)
-            ticker_df_adjusted = predict_hma45_t3(ticker_df_adjusted, model_hma45_t3, scaler_hma45_t3)
-            ticker_df_adjusted = predict_hma45_t4(ticker_df_adjusted, model_hma45_t4, scaler_hma45_t4)
-
-            # squeeze momentum slope
-            ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t1(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t1, scaler_sqz_momentum_30_15min_t1)
-            ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t2(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t2, scaler_sqz_momentum_30_15min_t2)
-            ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t3(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t3, scaler_sqz_momentum_30_15min_t3)
-            ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t4(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t4, scaler_sqz_momentum_30_15min_t4)
-            ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t5(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t5, scaler_sqz_momentum_30_15min_t5)
-            ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t6(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t6, scaler_sqz_momentum_30_15min_t6)
-            ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t7(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t7, scaler_sqz_momentum_30_15min_t7)
-            ticker_df_adjusted = predict_sqz_momentum_slope_30_15min_t8(ticker_df_adjusted, model_sqz_momentum_slope_30_15min_t8, scaler_sqz_momentum_30_15min_t8)
-
-            # squeeze momentum
-            ticker_df_adjusted = predict_sqz_momentum_30_15min_t1(ticker_df_adjusted, model_sqz_momentum_30_15min_t1, scaler_sqz_momentum_30_15min_t1)
-            ticker_df_adjusted = predict_sqz_momentum_30_15min_t2(ticker_df_adjusted, model_sqz_momentum_30_15min_t2, scaler_sqz_momentum_30_15min_t2)
-            ticker_df_adjusted = predict_sqz_momentum_30_15min_t3(ticker_df_adjusted, model_sqz_momentum_30_15min_t3, scaler_sqz_momentum_30_15min_t3)
-            ticker_df_adjusted = predict_sqz_momentum_30_15min_t4(ticker_df_adjusted, model_sqz_momentum_30_15min_t4, scaler_sqz_momentum_30_15min_t4)
-            ticker_df_adjusted = predict_sqz_momentum_30_15min_t5(ticker_df_adjusted, model_sqz_momentum_30_15min_t5, scaler_sqz_momentum_30_15min_t5)
-
-            # RSI-7 predictions
-            ticker_df_adjusted = predict_RSI_7_hma_15_15min_t1(ticker_df_adjusted, model_RSI_7_hma_15_15min_t1, scaler_RSI_7_hma_15_15min_t1)
-            ticker_df_adjusted = predict_RSI_7_hma_15_15min_t2(ticker_df_adjusted, model_RSI_7_hma_15_15min_t2, scaler_RSI_7_hma_15_15min_t2)
-            ticker_df_adjusted = predict_RSI_7_hma_15_15min_t3(ticker_df_adjusted, model_RSI_7_hma_15_15min_t3, scaler_RSI_7_hma_15_15min_t3)
-            ticker_df_adjusted = predict_RSI_7_hma_15_15min_t4(ticker_df_adjusted, model_RSI_7_hma_15_15min_t4, scaler_RSI_7_hma_15_15min_t4)
-
-            # RSI-14 predictions
-            ticker_df_adjusted = predict_RSI_14_hma_15_15min_t1(ticker_df_adjusted, model_RSI_14_hma_15_15min_t1, scaler_RSI_14_hma_15_15min_t1)
-            ticker_df_adjusted = predict_RSI_14_hma_15_15min_t2(ticker_df_adjusted, model_RSI_14_hma_15_15min_t2, scaler_RSI_14_hma_15_15min_t2)
-            ticker_df_adjusted = predict_RSI_14_hma_15_15min_t3(ticker_df_adjusted, model_RSI_14_hma_15_15min_t3, scaler_RSI_14_hma_15_15min_t3)
-            ticker_df_adjusted = predict_RSI_14_hma_15_15min_t4(ticker_df_adjusted, model_RSI_14_hma_15_15min_t4, scaler_RSI_14_hma_15_15min_t4)
-            
-            # RSI-28 predictions
-            ticker_df_adjusted = predict_RSI_28_hma_15_15min_t1(ticker_df_adjusted, model_RSI_28_hma_15_15min_t1, scaler_RSI_28_hma_15_15min_t1)
-            ticker_df_adjusted = predict_RSI_28_hma_15_15min_t2(ticker_df_adjusted, model_RSI_28_hma_15_15min_t2, scaler_RSI_28_hma_15_15min_t2)
-            ticker_df_adjusted = predict_RSI_28_hma_15_15min_t3(ticker_df_adjusted, model_RSI_28_hma_15_15min_t3, scaler_RSI_28_hma_15_15min_t3)
-            ticker_df_adjusted = predict_RSI_28_hma_15_15min_t4(ticker_df_adjusted, model_RSI_28_hma_15_15min_t4, scaler_RSI_28_hma_15_15min_t4)
-
-            # HMA 15 predictions (z-score)
-            ticker_df_adjusted = predict_hma15_5_zscore_t1(ticker_df_adjusted, model_hma15_5_zscore_t1, scaler_hma15_5_zscore_t1)
-            ticker_df_adjusted = predict_hma15_5_zscore_t2(ticker_df_adjusted, model_hma15_5_zscore_t2, scaler_hma15_5_zscore_t2)
-            ticker_df_adjusted = predict_hma15_5_zscore_t3(ticker_df_adjusted, model_hma15_5_zscore_t3, scaler_hma15_5_zscore_t3)
-            ticker_df_adjusted = predict_hma15_5_zscore_t4(ticker_df_adjusted, model_hma15_5_zscore_t4, scaler_hma15_5_zscore_t4)
-
-            # HMA 25 predictions (z-score)
-            ticker_df_adjusted = predict_hma25_5_zscore_t1(ticker_df_adjusted, model_hma25_5_zscore_t1, scaler_hma25_5_zscore_t1)
-            ticker_df_adjusted = predict_hma25_5_zscore_t2(ticker_df_adjusted, model_hma25_5_zscore_t2, scaler_hma25_5_zscore_t2)
-            ticker_df_adjusted = predict_hma25_5_zscore_t3(ticker_df_adjusted, model_hma25_5_zscore_t3, scaler_hma25_5_zscore_t3)
-            ticker_df_adjusted = predict_hma25_5_zscore_t4(ticker_df_adjusted, model_hma25_5_zscore_t4, scaler_hma25_5_zscore_t4)
-
-            # HMA 35 predictions (z-score)
-            ticker_df_adjusted = predict_hma35_5_zscore_t1(ticker_df_adjusted, model_hma35_5_zscore_t1, scaler_hma35_5_zscore_t1)
-            ticker_df_adjusted = predict_hma35_5_zscore_t2(ticker_df_adjusted, model_hma35_5_zscore_t2, scaler_hma35_5_zscore_t2)
-            ticker_df_adjusted = predict_hma35_5_zscore_t3(ticker_df_adjusted, model_hma35_5_zscore_t3, scaler_hma35_5_zscore_t3)
-            ticker_df_adjusted = predict_hma35_5_zscore_t4(ticker_df_adjusted, model_hma35_5_zscore_t4, scaler_hma35_5_zscore_t4)
-
-            # HMA 45 predictions (z-score)
-            ticker_df_adjusted = predict_hma45_5_zscore_t1(ticker_df_adjusted, model_hma45_5_zscore_t1, scaler_hma45_5_zscore_t1)
-            ticker_df_adjusted = predict_hma45_5_zscore_t2(ticker_df_adjusted, model_hma45_5_zscore_t2, scaler_hma45_5_zscore_t2)
-            ticker_df_adjusted = predict_hma45_5_zscore_t3(ticker_df_adjusted, model_hma45_5_zscore_t3, scaler_hma45_5_zscore_t3)
-            ticker_df_adjusted = predict_hma45_5_zscore_t4(ticker_df_adjusted, model_hma45_5_zscore_t4, scaler_hma45_5_zscore_t4)
-            
-            # VWAP 
-            ticker_df_adjusted = predict_vwap_zscore_10_15min_t6(ticker_df_adjusted, model_vwap_zscore_10_15min_t6, scaler_vwap_zscore_10_15min_t6)
-            ticker_df_adjusted = predict_vwap_zscore_10_15min_t7(ticker_df_adjusted, model_vwap_zscore_10_15min_t7, scaler_vwap_zscore_10_15min_t7)
-            ticker_df_adjusted = predict_vwap_zscore_10_15min_t8(ticker_df_adjusted, model_vwap_zscore_10_15min_t8, scaler_vwap_zscore_10_15min_t8)
-            ticker_df_adjusted = predict_vwap_zscore_10_15min_t9(ticker_df_adjusted, model_vwap_zscore_10_15min_t9, scaler_vwap_zscore_10_15min_t9)
-
-            # composite 
-            ticker_df_adjusted = create_logical_group_composites(ticker_df_adjusted, threshold=2.0)
-
-            # percentiles 
-            ticker_df_adjusted = predict_close_raw_percentile_20_15min_t1(ticker_df_adjusted, model_close_raw_percentile_20_15min_t1, scaler_close_raw_percentile_20_15min_t1)
-            ticker_df_adjusted = predict_close_raw_percentile_20_15min_t2(ticker_df_adjusted, model_close_raw_percentile_20_15min_t2, scaler_close_raw_percentile_20_15min_t2)
-            ticker_df_adjusted = predict_close_raw_percentile_50_15min_t1(ticker_df_adjusted, model_close_raw_percentile_50_15min_t1, scaler_close_raw_percentile_50_15min_t1)
-            ticker_df_adjusted = predict_close_raw_percentile_50_15min_t2(ticker_df_adjusted, model_close_raw_percentile_50_15min_t2, scaler_close_raw_percentile_50_15min_t2)
-            ticker_df_adjusted = predict_close_raw_percentile_50_15min_t3(ticker_df_adjusted, model_close_raw_percentile_50_15min_t3, scaler_close_raw_percentile_50_15min_t3)
-
-            # Trailing return z-score EMA predictions
-            ticker_df_adjusted = predict_trailing_return_20_zscore_ema_15min_t1(ticker_df_adjusted, model_trailing_return_20_zscore_ema_15min_t1, scaler_trailing_return_20_zscore_ema_15min_t1)
-            ticker_df_adjusted = predict_trailing_return_20_zscore_ema_15min_t2(ticker_df_adjusted, model_trailing_return_20_zscore_ema_15min_t2, scaler_trailing_return_20_zscore_ema_15min_t2)
-            ticker_df_adjusted = predict_trailing_return_20_zscore_ema_15min_t3(ticker_df_adjusted, model_trailing_return_20_zscore_ema_15min_t3, scaler_trailing_return_20_zscore_ema_15min_t3)
-            ticker_df_adjusted = predict_trailing_return_20_zscore_ema_15min_t4(ticker_df_adjusted, model_trailing_return_20_zscore_ema_15min_t4, scaler_trailing_return_20_zscore_ema_15min_t4)
-            ticker_df_adjusted = predict_trailing_return_20_zscore_ema_15min_t5(ticker_df_adjusted, model_trailing_return_20_zscore_ema_15min_t5, scaler_trailing_return_20_zscore_ema_15min_t5)
-
-            # remove underlying RNN features 
-            ticker_df_adjusted = remove_RNN_features(ticker_df_adjusted, feature_names)
 
             ######################
             # LABELS 
@@ -963,36 +728,85 @@ def objective(trial):
 # -------------------------------------------------------------------------
 # Run Optuna 
 # -------------------------------------------------------------------------
+if __name__ == "__main__":
+    import pandas as pd
+    import numpy as np
+    import plotly.graph_objects as go
+    import xgboost as xgb
+    from sklearn.metrics import accuracy_score, precision_score, f1_score, confusion_matrix
+    import numpy as np
+    import plotly.express as px
+    import plotly.graph_objects as go
+    import numpy as np
+    import pandas as pd
+    from sklearn.preprocessing import MinMaxScaler
+    import plotly.graph_objects as go
+    from itables import init_notebook_mode
+    init_notebook_mode(all_interactive=True) # makes all dataframes pretty
+    import os 
+    from tqdm import tqdm
+    import warnings
+    warnings.filterwarnings("ignore", category=UserWarning, module='optuna')
+    import talib
+    ######################
+    # LIMIT CPU UTILIZATION
+    ######################
+    limit_cpu_cores(0.9)
 
-# Run Optuna
-study = optuna.create_study(direction='maximize')
+    ######################
+    # SET WORKING DIRECTORY / FILE NAMES
+    ######################
+    # Usage
+    working_dir = r'C:\Users\micha\myhome\algo\artifacts\optuna'
+    optuna_trials_dir = r'C:\Users\micha\myhome\algo\artifacts\optuna\optuna_pdfs'
+    set_working_directory(working_dir)
 
-try:
-    study.optimize(objective, n_trials=400, catch=(Exception,))  
+    # this is where all model
+    main_model_path = 'my_model_info.pkl'
 
-except KeyboardInterrupt:
-    print("\nStudy interrupted by user. Saving progress...")
+    ######################
+    # SET TICKER LIST 
+    ######################
+    # set ticker list 
+    optuna_ticker_list = ['TSLA']
 
-except MemoryError:
-    print("\nMemory Error encountered in main study!")
-    gc.collect()
+    data_dict = load_and_process_data_dict(selected_symbols=optuna_ticker_list)
 
-except Exception as e:
-    print(f"\nStudy failed with error: {str(e)}")
-    raise
+    #################################
+    # CALCULATED PRECOMPUTED FEATURES
+    #################################
+    data_dict = calculate_precomputed_features(data_dict=data_dict, optuna_ticker_list=optuna_ticker_list)
+    print(data_dict[optuna_ticker_list[0]].columns)
 
-finally:
-    # Save progress even if interrupted
-    if hasattr(study, 'trials'):
-        try:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            study_backup_name = f'study_backup_{timestamp}.pkl'
-            joblib.dump(study, study_backup_name)
-            print(f"Progress saved to {study_backup_name}")
-        except Exception as e:
-            print(f"Error saving progress: {str(e)}")
+    # Run Optuna
+    study = optuna.create_study(direction='maximize')
+    try:
+        study.optimize(lambda trial: objective(trial, data_dict), n_trials=400, catch=(Exception,))
+        #study.optimize(objective, data_dict=data_dict, n_trials=400, catch=(Exception,))  
 
-print("Best Hyperparameters:")
-print(study.best_params)
-print("Best Uplift:")
-print(study.best_value)
+    except KeyboardInterrupt:
+        print("\nStudy interrupted by user. Saving progress...")
+
+    except MemoryError:
+        print("\nMemory Error encountered in main study!")
+        gc.collect()
+
+    except Exception as e:
+        print(f"\nStudy failed with error: {str(e)}")
+        raise
+
+    finally:
+        # Save progress even if interrupted
+        if hasattr(study, 'trials'):
+            try:
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                study_backup_name = f'study_backup_{timestamp}.pkl'
+                joblib.dump(study, study_backup_name)
+                print(f"Progress saved to {study_backup_name}")
+            except Exception as e:
+                print(f"Error saving progress: {str(e)}")
+
+    print("Best Hyperparameters:")
+    print(study.best_params)
+    print("Best Uplift:")
+    print(study.best_value)
