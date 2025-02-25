@@ -783,7 +783,7 @@ def calculate_hma_distance_features_raw(df, epsilon=1e-9):
     # Basic HMA close distance features
     hma_periods = [10, 15, 20, 25, 30, 40, 75, 150]
     for period in hma_periods:
-        hma_col = f'price_slope_hma_long_term_{period}'
+        hma_col = f'price_slope_hma_long_term_{period}_raw'
         df[f'close_distance_hma_{period}_raw'] = (
             df['close_raw'] - df[hma_col]
         ) / (df[hma_col] + epsilon)
@@ -1253,7 +1253,7 @@ def add_price_position_indicators_raw(df, periods=[150, 75, 40, 30, 25, 20, 15, 
         raise ValueError("DataFrame must contain 'close_raw' column")
         
     for period in periods:
-        hma_col = f'price_slope_hma_long_term_{period}'
+        hma_col = f'price_slope_hma_long_term_{period}_raw'
         if hma_col not in df_copy.columns:
             raise ValueError(f"Required column {hma_col} not found in dataframe")
         
@@ -1430,7 +1430,7 @@ def add_std_deviation_features_raw(df, periods=[40, 30, 20], min_periods=None):
         raise ValueError("DataFrame must contain 'close_raw' column")
     
     for period in periods:
-        hma_col = f'price_slope_hma_long_term_{period}'
+        hma_col = f'price_slope_hma_long_term_{period}_raw'
         if hma_col not in df_copy.columns:
             raise ValueError(f"Required column {hma_col} not found in dataframe")
             
