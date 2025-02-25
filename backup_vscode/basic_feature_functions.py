@@ -165,6 +165,29 @@ def features_for_RNN_models(df, periods=[45, 35, 25, 15, 10], slope_periods=[2, 
     
     return df_copy, created_features
 
+def remove_RNN_features(df, feature_names):
+    """
+    Remove all features created by features_for_RNN_models function from the DataFrame.
+    
+    Parameters:
+    -----------
+    df : pandas.DataFrame
+        DataFrame containing the RNN features to be removed
+    feature_names : list
+        List of feature names to remove, as returned by features_for_RNN_models
+        
+    Returns:
+    --------
+    pandas.DataFrame
+        DataFrame with RNN features removed
+    """
+    df_copy = df.copy()
+    
+    # Remove all features in the feature_names list
+    df_copy = df_copy.drop(columns=feature_names, errors='ignore')
+    
+    return df_copy
+
 
 def add_trend_buy_threshold_columns(df, step=0.05, start=0.25, end=0.70):
     """
