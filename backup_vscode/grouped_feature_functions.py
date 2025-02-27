@@ -111,7 +111,7 @@ def calculate_precomputed_features(data_dict, optuna_ticker_list=None):
         ######################
         # RNN PREDICTIONS FEATURES 
         ######################
-        custom_periods = [100, 60, 45, 35, 25, 15, 10, 5, 4]
+        custom_periods = [100, 60, 45, 35, 25, 20, 15, 10, 5, 4]
         custom_slope_periods = [2, 5]
         ticker_df_adjusted, feature_names = features_for_RNN_models(ticker_df_adjusted, 
                                                 periods=custom_periods,
@@ -236,6 +236,20 @@ def calculate_precomputed_features(data_dict, optuna_ticker_list=None):
         ticker_df_adjusted = predict_trailing_return_20_zscore_ema_15min_t3(ticker_df_adjusted, model_trailing_return_20_zscore_ema_15min_t3, scaler_trailing_return_20_zscore_ema_15min_t3)
         ticker_df_adjusted = predict_trailing_return_20_zscore_ema_15min_t4(ticker_df_adjusted, model_trailing_return_20_zscore_ema_15min_t4, scaler_trailing_return_20_zscore_ema_15min_t4)
         ticker_df_adjusted = predict_trailing_return_20_zscore_ema_15min_t5(ticker_df_adjusted, model_trailing_return_20_zscore_ema_15min_t5, scaler_trailing_return_20_zscore_ema_15min_t5)
+
+        # HMA 15_5 predictions
+        ticker_df_adjusted = predict_hma15_5_t2(ticker_df_adjusted, model_hma15_5_t2, scaler_hma15_5_t2)
+        ticker_df_adjusted = predict_hma15_5_t3(ticker_df_adjusted, model_hma15_5_t3, scaler_hma15_5_t3)
+        ticker_df_adjusted = predict_hma15_5_t4(ticker_df_adjusted, model_hma15_5_t4, scaler_hma15_5_t4)
+        ticker_df_adjusted = predict_hma15_5_t5(ticker_df_adjusted, model_hma15_5_t5, scaler_hma15_5_t5)
+
+        # T3_6 predictions
+        ticker_df_adjusted = predict_T3_6_t1(ticker_df_adjusted, model_T3_6_t1, scaler_T3_6_t1)
+        ticker_df_adjusted = predict_T3_6_t2(ticker_df_adjusted, model_T3_6_t2, scaler_T3_6_t2)
+        ticker_df_adjusted = predict_T3_6_t3(ticker_df_adjusted, model_T3_6_t3, scaler_T3_6_t3)
+        ticker_df_adjusted = predict_T3_6_t4(ticker_df_adjusted, model_T3_6_t4, scaler_T3_6_t4)
+        ticker_df_adjusted = predict_T3_6_t5(ticker_df_adjusted, model_T3_6_t5, scaler_T3_6_t5)
+
 
         # remove underlying RNN features 
         ticker_df_adjusted = remove_RNN_features(ticker_df_adjusted, feature_names)
