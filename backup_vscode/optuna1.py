@@ -164,7 +164,7 @@ def objective(trial, data_dict):
             hma_short_adjustment = 0
 
             # params for modeling
-            use_ensemble = False  
+            use_ensemble = True  
             # max_depth = 4
             # learning_rate = 0.3500
 
@@ -215,7 +215,7 @@ def objective(trial, data_dict):
         #################################
 
         #long or short
-        is_model_type_short = True
+        is_model_type_short = False
 
         # buy and sell
         stop_loss_adjust = 1.05
@@ -378,7 +378,7 @@ def objective(trial, data_dict):
             ticker_df_adjusted = add_candle_pattern_features(ticker_df_adjusted,open_col='open',close_col='close')
                     
             ######################
-            # VARFIOUS PRICE SLOPE FEATURES
+            # VARIOUS PRICE SLOPE FEATURES
             ######################
             ticker_df_adjusted = add_comprehensive_slope_features(ticker_df_adjusted, close_col='close',close_raw_col='close_raw')
         
@@ -757,8 +757,8 @@ if __name__ == "__main__":
     # SET WORKING DIRECTORY / FILE NAMES
     ######################
     # Usage
-    working_dir = r'C:\Users\micha\myhome\algo\artifacts\optuna'
-    optuna_trials_dir = r'C:\Users\micha\myhome\algo\artifacts\optuna\optuna_pdfs'
+    working_dir = r'C:\Users\daraa\Desktop\vscode_python\optuna_dev'
+    optuna_trials_dir = r'C:\Users\daraa\Desktop\vscode_python\optuna_dev\optuna_trials_dev'
     set_working_directory(working_dir)
 
     # this is where all model
@@ -768,7 +768,7 @@ if __name__ == "__main__":
     # SET TICKER LIST 
     ######################
     # set ticker list 
-    optuna_ticker_list = ['TSLA']
+    optuna_ticker_list = ['SOXL']
 
     data_dict = load_and_process_data_dict(selected_symbols=optuna_ticker_list)
 

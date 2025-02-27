@@ -3850,6 +3850,700 @@ def predict_close_raw_cci_hma_22_t3(ticker_df_adjusted, model_close_raw_cci_hma_
    
    return ticker_df_adjusted
 
+######################
+# HMA Slope (NEW)
+######################
+
+def predict_hma15_5_t2(ticker_df_adjusted, model_hma15_5_t2, scaler_hma15_5_t2):
+    """
+    Predicts HMA 15 values using the t2 model (15_5 version) and adds prediction, comparison,
+    and standard deviation columns to the dataframe.
+    
+    Args:
+        ticker_df_adjusted (pd.DataFrame): Input dataframe containing required columns.
+        model_hma15_5_t2: The pre-trained model.
+        scaler_hma15_5_t2: The pre-trained scaler (unused in this version).
+    
+    Returns:
+        pd.DataFrame: DataFrame with added prediction and analysis columns.
+    """
+    columns_to_include = [
+        'close_slope_45_5_raw',
+        'close_slope_35_5_raw',
+        'close_slope_25_5_raw',
+        'close_slope_20_5_raw',
+        'close_slope_15_5_raw',
+        'close_slope_10_5_raw', 
+    ]
+    
+    seq_length = 7
+    should_scale = False
+    original_feature = 'close_slope_15_5_raw'
+    underlying_original_feature = 'close_15_raw'
+    
+    # Generate predictions using the new 15_5 model
+    ticker_df_adjusted = predict_sequences(
+        model_hma15_5_t2,
+        ticker_df_adjusted,
+        columns_to_include,
+        seq_length,
+        1000,
+        'close_slope_15_5_t2_prediction',
+        should_scale=should_scale
+    )
+    
+    # Calculate difference between predicted and actual values
+    ticker_df_adjusted['close_slope_15_5_t2_diff'] = (
+        ticker_df_adjusted['close_slope_15_5_t2_prediction'] - ticker_df_adjusted[original_feature]
+    )
+    
+    # Create binary columns for differences and predictions
+    ticker_df_adjusted['close_slope_15_5_t2_diff_positive'] = (
+        ticker_df_adjusted['close_slope_15_5_t2_diff'] > 0
+    ).astype(int)
+    
+    ticker_df_adjusted['close_slope_15_5_t2_prediction_positive'] = (
+        ticker_df_adjusted['close_slope_15_5_t2_prediction'] > 0
+    ).astype(int)
+    
+    # Add close plus slope prediction
+    ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t2'] = (
+        ticker_df_adjusted[underlying_original_feature] + 
+        ticker_df_adjusted['close_slope_15_5_t2_prediction']
+    )
+    
+    # Calculate trailing standard deviation
+    ticker_df_adjusted['close_15_std_150'] = ticker_df_adjusted[underlying_original_feature].rolling(window=150).std()
+    
+    # Calculate standard deviations above zero
+    ticker_df_adjusted['std_dev_above_zero_15_5_t2'] = np.where(
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t2'] > 0,
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t2'] / ticker_df_adjusted['close_15_std_150'],
+        0
+    )
+    
+    # Calculate standard deviations below zero
+    ticker_df_adjusted['std_dev_below_zero_15_5_t2'] = np.where(
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t2'] < 0,
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t2'] / ticker_df_adjusted['close_15_std_150'],
+        0
+    )
+    
+    # Calculate acceleration of the new predictions
+    ticker_df_adjusted['close_slope_15_5_t2_accel'] = ticker_df_adjusted['close_slope_15_5_t2_prediction'].diff()
+    
+    return ticker_df_adjusted
+
+def predict_hma15_5_t3(ticker_df_adjusted, model_hma15_5_t3, scaler_hma15_5_t3):
+    """
+    Predicts HMA 15 values using the t3 model (15_5 version) and adds prediction, comparison,
+    and standard deviation columns to the dataframe.
+    
+    Args:
+        ticker_df_adjusted (pd.DataFrame): Input dataframe containing required columns.
+        model_hma15_5_t3: The pre-trained model.
+        scaler_hma15_5_t3: The pre-trained scaler (unused in this version).
+    
+    Returns:
+        pd.DataFrame: DataFrame with added prediction and analysis columns.
+    """
+    columns_to_include = [
+        'close_slope_45_5_raw',
+        'close_slope_35_5_raw',
+        'close_slope_25_5_raw',
+        'close_slope_20_5_raw',
+        'close_slope_15_5_raw',
+        'close_slope_10_5_raw', 
+    ]
+    
+    seq_length = 7
+    should_scale = False
+    original_feature = 'close_slope_15_5_raw'
+    underlying_original_feature = 'close_15_raw'
+    
+    # Generate predictions using the new 15_5 model
+    ticker_df_adjusted = predict_sequences(
+        model_hma15_5_t3,
+        ticker_df_adjusted,
+        columns_to_include,
+        seq_length,
+        1000,
+        'close_slope_15_5_t3_prediction',
+        should_scale=should_scale
+    )
+    
+    # Calculate difference between predicted and actual values
+    ticker_df_adjusted['close_slope_15_5_t3_diff'] = (
+        ticker_df_adjusted['close_slope_15_5_t3_prediction'] - ticker_df_adjusted[original_feature]
+    )
+    
+    # Create binary columns for differences and predictions
+    ticker_df_adjusted['close_slope_15_5_t3_diff_positive'] = (
+        ticker_df_adjusted['close_slope_15_5_t3_diff'] > 0
+    ).astype(int)
+    
+    ticker_df_adjusted['close_slope_15_5_t3_prediction_positive'] = (
+        ticker_df_adjusted['close_slope_15_5_t3_prediction'] > 0
+    ).astype(int)
+    
+    # Add close plus slope prediction
+    ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t3'] = (
+        ticker_df_adjusted[underlying_original_feature] + 
+        ticker_df_adjusted['close_slope_15_5_t3_prediction']
+    )
+    
+    # Calculate trailing standard deviation
+    ticker_df_adjusted['close_15_std_150'] = ticker_df_adjusted[underlying_original_feature].rolling(window=150).std()
+    
+    # Calculate standard deviations above zero
+    ticker_df_adjusted['std_dev_above_zero_15_5_t3'] = np.where(
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t3'] > 0,
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t3'] / ticker_df_adjusted['close_15_std_150'],
+        0
+    )
+    
+    # Calculate standard deviations below zero
+    ticker_df_adjusted['std_dev_below_zero_15_5_t3'] = np.where(
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t3'] < 0,
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t3'] / ticker_df_adjusted['close_15_std_150'],
+        0
+    )
+    
+    # Calculate acceleration of the new predictions
+    ticker_df_adjusted['close_slope_15_5_t3_accel'] = ticker_df_adjusted['close_slope_15_5_t3_prediction'].diff()
+    
+    return ticker_df_adjusted
+
+
+def predict_hma15_5_t4(ticker_df_adjusted, model_hma15_5_t4, scaler_hma15_5_t4):
+    """
+    Predicts HMA 15 values using the t4 model (15_5 version) and adds prediction, comparison,
+    and standard deviation columns to the dataframe.
+    
+    Args:
+        ticker_df_adjusted (pd.DataFrame): Input dataframe containing required columns.
+        model_hma15_5_t4: The pre-trained model.
+        scaler_hma15_5_t4: The pre-trained scaler (unused in this version).
+    
+    Returns:
+        pd.DataFrame: DataFrame with added prediction and analysis columns.
+    """
+    columns_to_include = [
+        'close_slope_45_5_raw',
+        'close_slope_35_5_raw',
+        'close_slope_25_5_raw',
+        'close_slope_20_5_raw',
+        'close_slope_15_5_raw',
+        'close_slope_10_5_raw', 
+    ]
+    
+    seq_length = 7
+    should_scale = False
+    original_feature = 'close_slope_15_5_raw'
+    underlying_original_feature = 'close_15_raw'
+    
+    # Generate predictions using the new 15_5 model
+    ticker_df_adjusted = predict_sequences(
+        model_hma15_5_t4,
+        ticker_df_adjusted,
+        columns_to_include,
+        seq_length,
+        1000,
+        'close_slope_15_5_t4_prediction',
+        should_scale=should_scale
+    )
+    
+    # Calculate difference between predicted and actual values
+    ticker_df_adjusted['close_slope_15_5_t4_diff'] = (
+        ticker_df_adjusted['close_slope_15_5_t4_prediction'] - ticker_df_adjusted[original_feature]
+    )
+    
+    # Create binary columns for differences and predictions
+    ticker_df_adjusted['close_slope_15_5_t4_diff_positive'] = (
+        ticker_df_adjusted['close_slope_15_5_t4_diff'] > 0
+    ).astype(int)
+    
+    ticker_df_adjusted['close_slope_15_5_t4_prediction_positive'] = (
+        ticker_df_adjusted['close_slope_15_5_t4_prediction'] > 0
+    ).astype(int)
+    
+    # Add close plus slope prediction
+    ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t4'] = (
+        ticker_df_adjusted[underlying_original_feature] + 
+        ticker_df_adjusted['close_slope_15_5_t4_prediction']
+    )
+    
+    # Calculate trailing standard deviation
+    ticker_df_adjusted['close_15_std_150'] = ticker_df_adjusted[underlying_original_feature].rolling(window=150).std()
+    
+    # Calculate standard deviations above zero
+    ticker_df_adjusted['std_dev_above_zero_15_5_t4'] = np.where(
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t4'] > 0,
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t4'] / ticker_df_adjusted['close_15_std_150'],
+        0
+    )
+    
+    # Calculate standard deviations below zero
+    ticker_df_adjusted['std_dev_below_zero_15_5_t4'] = np.where(
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t4'] < 0,
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t4'] / ticker_df_adjusted['close_15_std_150'],
+        0
+    )
+    
+    # Calculate acceleration of the new predictions
+    ticker_df_adjusted['close_slope_15_5_t4_accel'] = ticker_df_adjusted['close_slope_15_5_t4_prediction'].diff()
+    
+    return ticker_df_adjusted
+
+
+def predict_hma15_5_t5(ticker_df_adjusted, model_hma15_5_t5, scaler_hma15_5_t5):
+    """
+    Predicts HMA 15 values using the t5 model (15_5 version) and adds prediction, comparison,
+    and standard deviation columns to the dataframe.
+    
+    Args:
+        ticker_df_adjusted (pd.DataFrame): Input dataframe containing required columns.
+        model_hma15_5_t5: The pre-trained model.
+        scaler_hma15_5_t5: The pre-trained scaler (unused in this version).
+    
+    Returns:
+        pd.DataFrame: DataFrame with added prediction and analysis columns.
+    """
+    columns_to_include = [
+        'close_slope_45_5_raw',
+        'close_slope_35_5_raw',
+        'close_slope_25_5_raw',
+        'close_slope_20_5_raw',
+        'close_slope_15_5_raw',
+        'close_slope_10_5_raw', 
+    ]
+    
+    seq_length = 7
+    should_scale = False
+    original_feature = 'close_slope_15_5_raw'
+    underlying_original_feature = 'close_15_raw'
+    
+    # Generate predictions using the new 15_5 model
+    ticker_df_adjusted = predict_sequences(
+        model_hma15_5_t5,
+        ticker_df_adjusted,
+        columns_to_include,
+        seq_length,
+        1000,
+        'close_slope_15_5_t5_prediction',
+        should_scale=should_scale
+    )
+    
+    # Calculate difference between predicted and actual values
+    ticker_df_adjusted['close_slope_15_5_t5_diff'] = (
+        ticker_df_adjusted['close_slope_15_5_t5_prediction'] - ticker_df_adjusted[original_feature]
+    )
+    
+    # Create binary columns for differences and predictions
+    ticker_df_adjusted['close_slope_15_5_t5_diff_positive'] = (
+        ticker_df_adjusted['close_slope_15_5_t5_diff'] > 0
+    ).astype(int)
+    
+    ticker_df_adjusted['close_slope_15_5_t5_prediction_positive'] = (
+        ticker_df_adjusted['close_slope_15_5_t5_prediction'] > 0
+    ).astype(int)
+    
+    # Add close plus slope prediction
+    ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t5'] = (
+        ticker_df_adjusted[underlying_original_feature] + 
+        ticker_df_adjusted['close_slope_15_5_t5_prediction']
+    )
+    
+    # Calculate trailing standard deviation
+    ticker_df_adjusted['close_15_std_150'] = ticker_df_adjusted[underlying_original_feature].rolling(window=150).std()
+    
+    # Calculate standard deviations above zero
+    ticker_df_adjusted['std_dev_above_zero_15_5_t5'] = np.where(
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t5'] > 0,
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t5'] / ticker_df_adjusted['close_15_std_150'],
+        0
+    )
+    
+    # Calculate standard deviations below zero
+    ticker_df_adjusted['std_dev_below_zero_15_5_t5'] = np.where(
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t5'] < 0,
+        ticker_df_adjusted['close_15_plus_slope_prediction_15_5_t5'] / ticker_df_adjusted['close_15_std_150'],
+        0
+    )
+    
+    # Calculate acceleration of the new predictions
+    ticker_df_adjusted['close_slope_15_5_t5_accel'] = ticker_df_adjusted['close_slope_15_5_t5_prediction'].diff()
+    
+    return ticker_df_adjusted
+
+######################
+# T3
+######################
+
+def predict_T3_6_t1(ticker_df_adjusted, model_T3_6_t1, scaler_T3_6_t1):
+    """
+    Predicts T3_6 values using the t1 model and adds prediction, comparison, and standard deviation columns to the dataframe.
+    
+    Args:
+        ticker_df_adjusted (pd.DataFrame): Input dataframe containing required columns.
+        model_T3_6_t1: The pre-trained model for t1.
+        scaler_T3_6_t1: The pre-trained scaler (not used since scaling is disabled).
+    
+    Returns:
+        pd.DataFrame: DataFrame with added prediction and analysis columns.
+    """
+    columns_to_include = [
+        'close_T3_12_slope_2_raw',
+        'close_T3_12_slope_5_raw',
+        'close_T3_9_slope_2_raw',
+        'close_T3_9_slope_5_raw',
+        'close_T3_6_slope_5_raw',
+        'close_T3_6_slope_2_raw',
+        'close_T3_3_slope_2_raw',
+        'close_T3_3_slope_5_raw'
+    ]
+    
+    seq_length = 7
+    should_scale = False
+    original_feature = 'close_T3_6_slope_5_raw'
+    underlying_original_feature = 'close_T3_6_raw'
+    
+    ticker_df_adjusted = predict_sequences(
+        model_T3_6_t1,
+        ticker_df_adjusted,
+        columns_to_include,
+        seq_length,
+        1000,
+        'close_T3_6_slope_5_raw_t1_prediction',
+        should_scale=should_scale
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t1_diff'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t1_prediction'] - ticker_df_adjusted[original_feature]
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t1_diff_positive'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t1_diff'] > 0
+    ).astype(int)
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t1_prediction_positive'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t1_prediction'] > 0
+    ).astype(int)
+    
+    ticker_df_adjusted['close_T3_6_plus_slope_prediction_t1'] = (
+        ticker_df_adjusted[underlying_original_feature] + ticker_df_adjusted['close_T3_6_slope_5_raw_t1_prediction']
+    )
+    
+    ticker_df_adjusted['close_T3_6_std_150'] = ticker_df_adjusted[underlying_original_feature].rolling(window=150).std()
+    
+    ticker_df_adjusted['std_dev_above_zero_6_t1'] = np.where(
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t1'] > 0,
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t1'] / ticker_df_adjusted['close_T3_6_std_150'],
+        0
+    )
+    
+    ticker_df_adjusted['std_dev_below_zero_6_t1'] = np.where(
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t1'] < 0,
+        np.abs(ticker_df_adjusted['close_T3_6_plus_slope_prediction_t1']) / ticker_df_adjusted['close_T3_6_std_150'],
+        0
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t1_accel'] = ticker_df_adjusted['close_T3_6_slope_5_raw_t1_prediction'].diff()
+    
+    return ticker_df_adjusted
+
+
+def predict_T3_6_t2(ticker_df_adjusted, model_T3_6_t2, scaler_T3_6_t2):
+    """
+    Predicts T3_6 values using the t2 model and adds prediction, comparison, and standard deviation columns to the dataframe.
+    
+    Args:
+        ticker_df_adjusted (pd.DataFrame): Input dataframe containing required columns.
+        model_T3_6_t2: The pre-trained model for t2.
+        scaler_T3_6_t2: The pre-trained scaler (not used since scaling is disabled).
+    
+    Returns:
+        pd.DataFrame: DataFrame with added prediction and analysis columns.
+    """
+    columns_to_include = [
+        'close_T3_12_slope_2_raw',
+        'close_T3_12_slope_5_raw',
+        'close_T3_9_slope_2_raw',
+        'close_T3_9_slope_5_raw',
+        'close_T3_6_slope_5_raw',
+        'close_T3_6_slope_2_raw',
+        'close_T3_3_slope_2_raw',
+        'close_T3_3_slope_5_raw'
+    ]
+    
+    seq_length = 7
+    should_scale = False
+    original_feature = 'close_T3_6_slope_5_raw'
+    underlying_original_feature = 'close_T3_6_raw'
+    
+    ticker_df_adjusted = predict_sequences(
+        model_T3_6_t2,
+        ticker_df_adjusted,
+        columns_to_include,
+        seq_length,
+        1000,
+        'close_T3_6_slope_5_raw_t2_prediction',
+        should_scale=should_scale
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t2_diff'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t2_prediction'] - ticker_df_adjusted[original_feature]
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t2_diff_positive'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t2_diff'] > 0
+    ).astype(int)
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t2_prediction_positive'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t2_prediction'] > 0
+    ).astype(int)
+    
+    ticker_df_adjusted['close_T3_6_plus_slope_prediction_t2'] = (
+        ticker_df_adjusted[underlying_original_feature] + ticker_df_adjusted['close_T3_6_slope_5_raw_t2_prediction']
+    )
+    
+    ticker_df_adjusted['close_T3_6_std_150'] = ticker_df_adjusted[underlying_original_feature].rolling(window=150).std()
+    
+    ticker_df_adjusted['std_dev_above_zero_6_t2'] = np.where(
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t2'] > 0,
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t2'] / ticker_df_adjusted['close_T3_6_std_150'],
+        0
+    )
+    
+    ticker_df_adjusted['std_dev_below_zero_6_t2'] = np.where(
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t2'] < 0,
+        np.abs(ticker_df_adjusted['close_T3_6_plus_slope_prediction_t2']) / ticker_df_adjusted['close_T3_6_std_150'],
+        0
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t2_accel'] = ticker_df_adjusted['close_T3_6_slope_5_raw_t2_prediction'].diff()
+    
+    return ticker_df_adjusted
+
+
+def predict_T3_6_t3(ticker_df_adjusted, model_T3_6_t3, scaler_T3_6_t3):
+    """
+    Predicts T3_6 values using the t3 model and adds prediction, comparison, and standard deviation columns to the dataframe.
+    
+    Args:
+        ticker_df_adjusted (pd.DataFrame): Input dataframe containing required columns.
+        model_T3_6_t3: The pre-trained model for t3.
+        scaler_T3_6_t3: The pre-trained scaler (not used since scaling is disabled).
+    
+    Returns:
+        pd.DataFrame: DataFrame with added prediction and analysis columns.
+    """
+    columns_to_include = [
+        'close_T3_12_slope_2_raw',
+        'close_T3_12_slope_5_raw',
+        'close_T3_9_slope_2_raw',
+        'close_T3_9_slope_5_raw',
+        'close_T3_6_slope_5_raw',
+        'close_T3_6_slope_2_raw',
+        'close_T3_3_slope_2_raw',
+        'close_T3_3_slope_5_raw'
+    ]
+    
+    seq_length = 7
+    should_scale = False
+    original_feature = 'close_T3_6_slope_5_raw'
+    underlying_original_feature = 'close_T3_6_raw'
+    
+    ticker_df_adjusted = predict_sequences(
+        model_T3_6_t3,
+        ticker_df_adjusted,
+        columns_to_include,
+        seq_length,
+        1000,
+        'close_T3_6_slope_5_raw_t3_prediction',
+        should_scale=should_scale
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t3_diff'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t3_prediction'] - ticker_df_adjusted[original_feature]
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t3_diff_positive'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t3_diff'] > 0
+    ).astype(int)
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t3_prediction_positive'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t3_prediction'] > 0
+    ).astype(int)
+    
+    ticker_df_adjusted['close_T3_6_plus_slope_prediction_t3'] = (
+        ticker_df_adjusted[underlying_original_feature] + ticker_df_adjusted['close_T3_6_slope_5_raw_t3_prediction']
+    )
+    
+    ticker_df_adjusted['close_T3_6_std_150'] = ticker_df_adjusted[underlying_original_feature].rolling(window=150).std()
+    
+    ticker_df_adjusted['std_dev_above_zero_6_t3'] = np.where(
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t3'] > 0,
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t3'] / ticker_df_adjusted['close_T3_6_std_150'],
+        0
+    )
+    
+    ticker_df_adjusted['std_dev_below_zero_6_t3'] = np.where(
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t3'] < 0,
+        np.abs(ticker_df_adjusted['close_T3_6_plus_slope_prediction_t3']) / ticker_df_adjusted['close_T3_6_std_150'],
+        0
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t3_accel'] = ticker_df_adjusted['close_T3_6_slope_5_raw_t3_prediction'].diff()
+    
+    return ticker_df_adjusted
+
+
+def predict_T3_6_t4(ticker_df_adjusted, model_T3_6_t4, scaler_T3_6_t4):
+    """
+    Predicts T3_6 values using the t4 model and adds prediction, comparison, and standard deviation columns to the dataframe.
+    
+    Args:
+        ticker_df_adjusted (pd.DataFrame): Input dataframe containing required columns.
+        model_T3_6_t4: The pre-trained model for t4.
+        scaler_T3_6_t4: The pre-trained scaler (not used since scaling is disabled).
+    
+    Returns:
+        pd.DataFrame: DataFrame with added prediction and analysis columns.
+    """
+    columns_to_include = [
+        'close_T3_12_slope_2_raw',
+        'close_T3_12_slope_5_raw',
+        'close_T3_9_slope_2_raw',
+        'close_T3_9_slope_5_raw',
+        'close_T3_6_slope_5_raw',
+        'close_T3_6_slope_2_raw',
+        'close_T3_3_slope_2_raw',
+        'close_T3_3_slope_5_raw'
+    ]
+    
+    seq_length = 7
+    should_scale = False
+    original_feature = 'close_T3_6_slope_5_raw'
+    underlying_original_feature = 'close_T3_6_raw'
+    
+    ticker_df_adjusted = predict_sequences(
+        model_T3_6_t4,
+        ticker_df_adjusted,
+        columns_to_include,
+        seq_length,
+        1000,
+        'close_T3_6_slope_5_raw_t4_prediction',
+        should_scale=should_scale
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t4_diff'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t4_prediction'] - ticker_df_adjusted[original_feature]
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t4_diff_positive'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t4_diff'] > 0
+    ).astype(int)
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t4_prediction_positive'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t4_prediction'] > 0
+    ).astype(int)
+    
+    ticker_df_adjusted['close_T3_6_plus_slope_prediction_t4'] = (
+        ticker_df_adjusted[underlying_original_feature] + ticker_df_adjusted['close_T3_6_slope_5_raw_t4_prediction']
+    )
+    
+    ticker_df_adjusted['close_T3_6_std_150'] = ticker_df_adjusted[underlying_original_feature].rolling(window=150).std()
+    
+    ticker_df_adjusted['std_dev_above_zero_6_t4'] = np.where(
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t4'] > 0,
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t4'] / ticker_df_adjusted['close_T3_6_std_150'],
+        0
+    )
+    
+    ticker_df_adjusted['std_dev_below_zero_6_t4'] = np.where(
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t4'] < 0,
+        np.abs(ticker_df_adjusted['close_T3_6_plus_slope_prediction_t4']) / ticker_df_adjusted['close_T3_6_std_150'],
+        0
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t4_accel'] = ticker_df_adjusted['close_T3_6_slope_5_raw_t4_prediction'].diff()
+    
+    return ticker_df_adjusted
+
+
+def predict_T3_6_t5(ticker_df_adjusted, model_T3_6_t5, scaler_T3_6_t5):
+    """
+    Predicts T3_6 values using the t5 model and adds prediction, comparison, and standard deviation columns to the dataframe.
+    
+    Args:
+        ticker_df_adjusted (pd.DataFrame): Input dataframe containing required columns.
+        model_T3_6_t5: The pre-trained model for t5.
+        scaler_T3_6_t5: The pre-trained scaler (not used since scaling is disabled).
+    
+    Returns:
+        pd.DataFrame: DataFrame with added prediction and analysis columns.
+    """
+    columns_to_include = [
+        'close_T3_12_slope_2_raw',
+        'close_T3_12_slope_5_raw',
+        'close_T3_9_slope_2_raw',
+        'close_T3_9_slope_5_raw',
+        'close_T3_6_slope_5_raw',
+        'close_T3_6_slope_2_raw',
+        'close_T3_3_slope_2_raw',
+        'close_T3_3_slope_5_raw'
+    ]
+    
+    seq_length = 7
+    should_scale = False
+    original_feature = 'close_T3_6_slope_5_raw'
+    underlying_original_feature = 'close_T3_6_raw'
+    
+    ticker_df_adjusted = predict_sequences(
+        model_T3_6_t5,
+        ticker_df_adjusted,
+        columns_to_include,
+        seq_length,
+        1000,
+        'close_T3_6_slope_5_raw_t5_prediction',
+        should_scale=should_scale
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t5_diff'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t5_prediction'] - ticker_df_adjusted[original_feature]
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t5_diff_positive'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t5_diff'] > 0
+    ).astype(int)
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t5_prediction_positive'] = (
+        ticker_df_adjusted['close_T3_6_slope_5_raw_t5_prediction'] > 0
+    ).astype(int)
+    
+    ticker_df_adjusted['close_T3_6_plus_slope_prediction_t5'] = (
+        ticker_df_adjusted[underlying_original_feature] + ticker_df_adjusted['close_T3_6_slope_5_raw_t5_prediction']
+    )
+    
+    ticker_df_adjusted['close_T3_6_std_150'] = ticker_df_adjusted[underlying_original_feature].rolling(window=150).std()
+    
+    ticker_df_adjusted['std_dev_above_zero_6_t5'] = np.where(
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t5'] > 0,
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t5'] / ticker_df_adjusted['close_T3_6_std_150'],
+        0
+    )
+    
+    ticker_df_adjusted['std_dev_below_zero_6_t5'] = np.where(
+        ticker_df_adjusted['close_T3_6_plus_slope_prediction_t5'] < 0,
+        np.abs(ticker_df_adjusted['close_T3_6_plus_slope_prediction_t5']) / ticker_df_adjusted['close_T3_6_std_150'],
+        0
+    )
+    
+    ticker_df_adjusted['close_T3_6_slope_5_raw_t5_accel'] = ticker_df_adjusted['close_T3_6_slope_5_raw_t5_prediction'].diff()
+    
+    return ticker_df_adjusted
+
 
 ######################
 # HMA Slope
