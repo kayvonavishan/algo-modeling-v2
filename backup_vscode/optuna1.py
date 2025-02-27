@@ -217,6 +217,8 @@ def objective(trial, data_dict):
         #long or short
         is_model_type_short = True
 
+        avg_bid_ask_spread = 0.1 #(units = %)
+
         # buy and sell
         stop_loss_adjust = 1.05
         classes_for_spread = 1
@@ -664,7 +666,8 @@ def objective(trial, data_dict):
             stop_loss_scale_coeff=stop_loss_scale_coeff,
             use_performance_scaling=use_performance_scaling,
             return_equity_curves=True,
-            is_model_type_short=is_model_type_short
+            is_model_type_short=is_model_type_short,
+            avg_bid_ask_spread=avg_bid_ask_spread
         )
 
         #############################
@@ -696,8 +699,11 @@ def objective(trial, data_dict):
             debug_output=debug_output_labeling,
             equity_curve_plots=results_full_test_set.equity_curve_plots,
             trades_df=results_full_test_set.trades_df,
-            backtesting_results=results_full_test_set
+            backtesting_results=results_full_test_set,
+            equity_curve_plots_with_cost=results_full_test_set.equity_curve_plots_with_cost
         )
+
+        results_full_test_set.trades_df.to_csv(f"{optuna_trials_dir}/trades_df{trial.number}.csv")
 
 
         #############################
@@ -705,7 +711,8 @@ def objective(trial, data_dict):
         ##############################
 
         # Get the total returns from the full test set
-        final_objective = results_full_test_set.summary_metrics['average_total_return_percentage']
+        #final_objective = results_full_test_set.summary_metrics['average_total_return_percentage']
+        final_objective = results_full_test_set.summary_metrics['average_total_return_percentage_with_cost']
         print(f"\nFull Test Set Total Return: {final_objective:.2f}%")
         return final_objective
 
@@ -768,7 +775,7 @@ if __name__ == "__main__":
     # SET TICKER LIST 
     ######################
     # set ticker list 
-    optuna_ticker_list = ['TSLA']
+    optuna_ticker_list = ['TQQQ']
 
     data_dict = load_and_process_data_dict(selected_symbols=optuna_ticker_list)
 
