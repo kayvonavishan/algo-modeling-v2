@@ -19,6 +19,8 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")
 
 def create_label_distribution_plots(df_train, df_test):
     """
@@ -240,10 +242,6 @@ def create_probability_return_histogram(symbol_trades, symbol, highest_class, fi
         filtered_for_highest: Boolean to filter only for highest class predictions
         exclude_highest: Boolean to filter out highest class predictions
     """
-    import matplotlib.pyplot as plt
-    import pandas as pd
-    import numpy as np
-
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Input validation - can't have both filters active
@@ -260,37 +258,24 @@ def create_probability_return_histogram(symbol_trades, symbol, highest_class, fi
         if len(symbol_trades) == 0:
             return None  # Return None if no trades match the filter
 
-    # Make an explicit copy to avoid SettingWithCopyWarning
-    symbol_trades = symbol_trades.copy()
-
     # Get the actual range of probabilities
     min_prob = symbol_trades['highest_class_probability'].min()
     max_prob = symbol_trades['highest_class_probability'].max()
 
-    # Create bins using qcut with duplicates drop and retbins=True
+    # Create 5 bins with approximately equal counts using qcut
     n_bins = 5
-    _, bins = pd.qcut(
+    symbol_trades['prob_bin'] = pd.qcut(
         symbol_trades['highest_class_probability'], 
         q=n_bins,
-        retbins=True,
-        duplicates='drop'
-    )
-    # Create labels based on the number of bins (bins are edges, so there are len(bins)-1 bins)
-    bin_labels = [f'Quintile {i+1}' for i in range(len(bins) - 1)]
-    
-    # Use pd.cut with the computed bins and labels to assign a new column
-    symbol_trades.loc[:, 'prob_bin'] = pd.cut(
-        symbol_trades['highest_class_probability'],
-        bins=bins,
-        labels=bin_labels,
-        include_lowest=True
+        labels=[f'Quintile {i+1}' for i in range(n_bins)]
     )
 
-    # Calculate statistics for each bin with observed=False to silence FutureWarning
-    bin_stats = symbol_trades.groupby('prob_bin', observed=False).agg({
+    # Calculate statistics for each bin
+    bin_stats = symbol_trades.groupby('prob_bin').agg({
         'return_percentage': ['mean', 'count', 'std'],
         'highest_class_probability': ['min', 'max']
     }).round(3)
+
     bin_stats.columns = ['mean_return', 'count', 'std', 'min_prob', 'max_prob']
 
     # Create more informative bin labels showing the probability ranges
@@ -301,10 +286,8 @@ def create_probability_return_histogram(symbol_trades, symbol, highest_class, fi
     # Plot histogram-style bars
     bars = ax.bar(range(len(bin_stats)), bin_stats['mean_return'])
 
-    # Add value labels on top of bars, ensuring values are finite
+    # Add value labels on top of bars
     for i, row in enumerate(bin_stats.itertuples()):
-        if not np.isfinite(row.mean_return):
-            continue
         label_text = f'Return: {row.mean_return:.2f}%\nCount: {row.count}'
         ax.text(i, row.mean_return, label_text, 
                 ha='center', 
@@ -321,7 +304,7 @@ def create_probability_return_histogram(symbol_trades, symbol, highest_class, fi
     else:
         title_prefix = 'All Classes: '
 
-    ax.set_title(f'{title_prefix}Average Return (%) by Highest Class Probability - {symbol}\n'
+    ax.set_title(f'{title_prefix}Average Return (%) by Highest Class Probability - {symbol}\n' +
                  f'Range: [{min_prob:.3f}, {max_prob:.3f}]')
     ax.set_xlabel('Highest Class Probability Range')
     ax.set_ylabel('Average Return (%)')
@@ -329,8 +312,6 @@ def create_probability_return_histogram(symbol_trades, symbol, highest_class, fi
     plt.tight_layout()
 
     return fig
-
-
 
 
 def generate_class_metric_plots(trades_df: pd.DataFrame, initial_capital: float = 10000) -> List[Figure]:
@@ -482,6 +463,87 @@ def generate_time_series_metric_plot(trades_df: pd.DataFrame, initial_capital: f
             figs.append(fig)
     
     return figs
+
+def generate_time_series_metric_plot_long_short(trades_df: pd.DataFrame, initial_capital: float = 10000, window: int = 200) -> List[Figure]:
+    figs = []
+    
+    limited_y_metrics = [
+        'Average Winning Trade Return (%)',
+        'Average Losing Trade Return (%)',
+        'Average Return (%)'
+    ]
+    
+    for symbol in trades_df['symbol'].unique():
+        symbol_trades = trades_df[trades_df['symbol'] == symbol]
+        
+        # Create a complete date range from earliest to latest buy_timestamp
+        date_range = pd.date_range(
+            start=symbol_trades['buy_timestamp'].min(),
+            end=symbol_trades['buy_timestamp'].max(),
+            freq='D'
+        )
+        
+        metrics = {
+            'Average Winning Trade Return (%)': lambda x: x[x['return'] > 0]['return_percentage'].mean(),
+            'Average Losing Trade Return (%)': lambda x: x[x['return'] <= 0]['return_percentage'].mean(),
+            'Average Return (%)': lambda x: x['return_percentage'].mean(),
+            'Average Position Size (%)': lambda x: (x['position_size'] / x['capital'] * 100).mean()
+        }
+        
+        for title, metric_func in metrics.items():
+            # Create figure with adjusted size to accommodate legend
+            fig = plt.figure(figsize=(15, 8))
+            ax = fig.add_subplot(111)
+            
+            # Group by (buy_timestamp, is_short) then compute the metric
+            grouped = symbol_trades.groupby(['buy_timestamp', 'is_short']).apply(metric_func).reset_index(name='metric')
+            
+            # Pivot so that long/short are columns
+            pivot_df = grouped.pivot(index='buy_timestamp', columns='is_short', values='metric')
+            pivot_df = pivot_df.reindex(date_range)
+            
+            # Rename columns for clarity
+            pivot_df.columns = ['Long', 'Short']
+            
+            # Forward-fill missing days
+            pivot_df = pivot_df.ffill()
+            
+            # Apply EMA
+            ema_df = pivot_df.ewm(span=window, adjust=False).mean()
+            
+            # Plot lines with distinct colors
+            ax.plot(ema_df.index, ema_df['Long'], label='Long', color='green', linewidth=2)
+            ax.plot(ema_df.index, ema_df['Short'], label='Short', color='red', linewidth=2)
+            
+            # Optionally limit y-axis for certain metrics
+            if title in limited_y_metrics:
+                ax.set_ylim(-3.0, 3.0)
+            
+            # Customize plot
+            ax.set_title(f'{title} (EMA) by Position Type - {symbol}', fontsize=14, pad=20)
+            ax.set_xlabel('Date', fontsize=12)
+            ax.set_ylabel(title, fontsize=12)
+            ax.grid(True, alpha=0.3)
+            
+            # Rotate x-axis labels
+            plt.setp(ax.get_xticklabels(), rotation=45)
+            
+            # Add legend
+            ax.legend(
+                title='Position Type', 
+                loc='center left',
+                bbox_to_anchor=(1.02, 0.5),
+                fontsize=10,
+                title_fontsize=12
+            )
+            
+            # Adjust layout to prevent legend cutoff
+            plt.subplots_adjust(right=0.85)
+            
+            figs.append(fig)
+    
+    return figs
+
 
 
 def create_price_plot(filtered_df, start_date, end_date):
@@ -982,7 +1044,7 @@ import numpy as np
 def create_hma_probabilities_plot(filtered_df, backtesting_df, symbol, start_date, end_date):
     """
     Creates two subplots showing HMA of probability time series for each class,
-    separated into normal and fast signals.
+    separated into normal and short signals.
     """
     plt.style.use('default')
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
@@ -1003,10 +1065,10 @@ def create_hma_probabilities_plot(filtered_df, backtesting_df, symbol, start_dat
                 continue
         return -1
     
-    # Separate columns into normal and fast
+    # Separate columns into normal and short
     hma_columns = [col for col in symbol_df.columns if col.startswith('HMA_prediction_raw_class_')]
-    normal_columns = [col for col in hma_columns if not col.endswith('_fast')]
-    fast_columns = [col for col in hma_columns if col.endswith('_fast')]
+    normal_columns = [col for col in hma_columns if not col.endswith('_short')]
+    short_columns = [col for col in hma_columns if col.endswith('_short')]
 
     # Create color maps
     red_colors = [mcolors.to_rgba('darkred'), mcolors.to_rgba('red'), mcolors.to_rgba('lightpink')]
@@ -1068,8 +1130,8 @@ def create_hma_probabilities_plot(filtered_df, backtesting_df, symbol, start_dat
     # Plot normal signals on top subplot
     plot_columns(normal_columns, ax1, "Normal Signals")
     
-    # Plot fast signals on bottom subplot
-    plot_columns(fast_columns, ax2, "Fast Signals")
+    # Plot short signals on bottom subplot
+    plot_columns(short_columns, ax2, "Short Signals")
     
     # Add overall title
     fig.suptitle(f"{symbol} - {start_date} to {end_date}", y=1.02)
@@ -1087,7 +1149,7 @@ import numpy as np
 def create_hma_probabilities_minmax_plot(filtered_df, backtesting_df, symbol, start_date, end_date):
     """
     Creates two subplots showing HMA of probability time series for the MINIMUM and MAXIMUM classes,
-    separated into normal and fast signals.
+    separated into normal and short signals.
     """
     plt.style.use('default')
     # Create figure with two subplots
@@ -1109,10 +1171,10 @@ def create_hma_probabilities_minmax_plot(filtered_df, backtesting_df, symbol, st
                 continue
         return -1
     
-    # Separate columns into normal and fast
+    # Separate columns into normal and short
     hma_columns = [col for col in symbol_df.columns if col.startswith('HMA_prediction_raw_class_')]
-    normal_columns = [col for col in hma_columns if not col.endswith('_fast')]
-    fast_columns = [col for col in hma_columns if col.endswith('_fast')]
+    normal_columns = [col for col in hma_columns if not col.endswith('_short')]
+    short_columns = [col for col in hma_columns if col.endswith('_short')]
     
     # Create color maps
     red_colors = [mcolors.to_rgba('darkred'), mcolors.to_rgba('red'), mcolors.to_rgba('lightpink')]
@@ -1180,8 +1242,8 @@ def create_hma_probabilities_minmax_plot(filtered_df, backtesting_df, symbol, st
     # Plot normal signals on top subplot
     plot_columns(normal_columns, ax1, "Normal Signals")
     
-    # Plot fast signals on bottom subplot
-    plot_columns(fast_columns, ax2, "Fast Signals")
+    # Plot short signals on bottom subplot
+    plot_columns(short_columns, ax2, "Short Signals")
     
     # Add overall title
     fig.suptitle(f"{symbol} - {start_date} to {end_date}", y=1.02)
@@ -1389,6 +1451,16 @@ def create_backtest_metrics_table(symbol_metrics_df: pd.DataFrame) -> Figure:
     
     # Split metrics into groups for better visualization
     metric_groups = {
+        'Returns - With Cost': [
+            'total_returns_percentage_with_cost',
+            'average_percent_return_with_cost',
+            'buy_and_hold_return_percentage'
+        ],
+        'Trade Statistics - With Cost': [
+            'number_of_trades',
+            'win_loss_ratio_with_cost',
+            'sharpe_ratio_with_cost'
+        ],
         'Returns': [
             'total_returns_percentage',
             'average_percent_return',
@@ -1497,7 +1569,8 @@ def save_all_plots_in_one_pdf(
     extra_figures=None,
     debug_output=None, 
     equity_curve_plots=None,
-    backtesting_results=None  
+    backtesting_results=None,
+    equity_curve_plots_with_cost=None
 ):
     """
     Creates a single PDF (trial_{trial_number}.pdf) containing:
@@ -1582,6 +1655,11 @@ def save_all_plots_in_one_pdf(
         # ---------------------------------------------------------
         # EQUITY PLOT
         # ---------------------------------------------------------
+
+        if equity_curve_plots_with_cost is not None:
+            for fig in equity_curve_plots_with_cost:
+                pdf.savefig(fig)
+                plt.close(fig)
 
         if equity_curve_plots is not None:
             for fig in equity_curve_plots:
@@ -1932,6 +2010,12 @@ def save_all_plots_in_one_pdf(
         #----------------------------------
         # Add other plots plots if provided
         #----------------------------------
+
+        # Add time series metric plots
+        # time_series_figs = generate_time_series_metric_plot_long_short(trades_df, initial_capital=initial_capital)
+        # for fig in time_series_figs:
+        #     pdf.savefig(fig)
+        #     plt.close(fig)
 
         if len(trades_df) > 0 and 'predicted_class' in trades_df.columns:
             class_metric_figs = generate_class_metric_plots(trades_df, initial_capital=initial_capital)
