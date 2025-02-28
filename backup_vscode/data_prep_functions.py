@@ -197,7 +197,10 @@ def get_fitted_scaler(X_train, scaler_type='standard'):
         'vwap_zscore', 
         'close_raw_percentile_20_15min',
         'trailing_return_20_zscore',
-        'sqz_momentum' 
+        'sqz_momentum',
+        'close_T3_6',
+        'std_dev_above_zero_6'
+
     ]
     
     # Identify binary features (columns with 2 unique values of 0 and 1)

@@ -450,11 +450,84 @@ model_hma45_5_zscore_t4 = load_model(
 )
 scaler_hma45_5_zscore_t4 = None
 
+######################
+# NEW SLOPE MODELS
+######################
+
+model_hma15_5_t2 = load_model(
+    model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_slope_15_5_raw_15min_t2.pth',
+    input_size=7,
+    num_features=6
+)
+scaler_hma15_5_t2 = None
+
+model_hma15_5_t3 = load_model(
+    model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_slope_15_5_raw_15min_t3.pth',
+    input_size=7,
+    num_features=6
+)
+scaler_hma15_5_t3 = None
+
+model_hma15_5_t4 = load_model(
+    model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_slope_15_5_raw_15min_t4.pth',
+    input_size=7,
+    num_features=6
+)
+scaler_hma15_5_t4 = None
+
+model_hma15_5_t5 = load_model(
+    model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_slope_15_5_raw_15min_t5.pth',
+    input_size=7,
+    num_features=6
+)
+scaler_hma15_5_t5 = None
+
+######################
+# T3
+######################
+
+model_T3_6_t1 = load_model(
+    model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_T3_6_slope_5_raw_15min_t1.pth',
+    input_size=7,
+    num_features=8
+)
+scaler_T3_6_t1 = None
+
+model_T3_6_t2 = load_model(
+    model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_T3_6_slope_5_raw_15min_t2.pth',
+    input_size=7,
+    num_features=8
+)
+scaler_T3_6_t2 = None
+
+model_T3_6_t3 = load_model(
+    model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_T3_6_slope_5_raw_15min_t3.pth',
+    input_size=7,
+    num_features=8
+)
+scaler_T3_6_t3 = None
+
+model_T3_6_t4 = load_model(
+    model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_T3_6_slope_5_raw_15min_t4.pth',
+    input_size=7,
+    num_features=8
+)
+scaler_T3_6_t4 = None
+
+model_T3_6_t5 = load_model(
+    model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_T3_6_slope_5_raw_15min_t5.pth',
+    input_size=7,
+    num_features=8
+)
+scaler_T3_6_t5 = None
+
+
 
 
 ######################
 # LOAD RNN MODELS
 ######################
+
 
 # Pre-load models and scalers for HMA 25 (Binary)
 model_hma25_binary_t3 = load_model(

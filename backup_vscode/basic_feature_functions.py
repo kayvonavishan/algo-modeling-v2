@@ -10,7 +10,7 @@ from algo_feature_engineering.features.utils import calculate_trend_vectorized
 import numpy as np
 import pandas as pd
 
-def features_for_RNN_models(df, periods=[45, 35, 25, 15, 10], slope_periods=[2, 5]):
+def features_for_RNN_models(df, periods=[45, 35, 25, 20, 15, 10], slope_periods=[2, 5]):
     """
     Add features including HMA values, slopes, z-scores, RSI, ROC, squeeze momentum,
     and new VWAP-based features.
@@ -161,6 +161,89 @@ def features_for_RNN_models(df, periods=[45, 35, 25, 15, 10], slope_periods=[2, 
         df_copy[f'{prefix}_zscore_ema'] = (
             df_copy[f'{prefix}_zscore'].ewm(span=ema_period, adjust=False).mean()
         )
+
+    # T3 Moving Average 
+    import pandas as pd
+    import numpy as np
+    
+    def calculate_t3(series, period, factor=0.7):
+        """
+        Computes the T3 moving average.
+        
+        This implementation mimics the PineScript version:
+          gd(src, period) = EMA(src, period) * (1 + factor) - EMA(EMA(src, period), period) * factor
+          T3 = gd(gd(gd(src, period), period), period)
+          
+        Parameters:
+            series (pd.Series): The input data series (e.g. close prices).
+            period (int): The length parameter for the EMA calculations.
+            factor (float): Smoothing factor (default is 0.7).
+        
+        Returns:
+            pd.Series: The T3 moving average.
+        """
+        def gd(src, period, factor):
+            ema1 = src.ewm(span=period, adjust=False).mean()
+            ema2 = ema1.ewm(span=period, adjust=False).mean()
+            return ema1 * (1 + factor) - ema2 * factor
+    
+        t3 = gd(gd(gd(series, period, factor), period, factor), period, factor)
+        return t3
+
+    # For a Hull period of 60, we use T3 period = 36
+    df_copy['close_T3_36_raw'] = calculate_t3(df_copy['close_raw'], period=36, factor=0.7)
+    df_copy['close_T3_36_slope_2_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_36_raw'], timeperiod=2)
+    df_copy['close_T3_36_slope_5_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_36_raw'], timeperiod=5)
+    
+    # For a Hull period of 55, we use T3 period = 33
+    df_copy['close_T3_33_raw'] = calculate_t3(df_copy['close_raw'], period=33, factor=0.7)
+    df_copy['close_T3_33_slope_2_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_33_raw'], timeperiod=2)
+    df_copy['close_T3_33_slope_5_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_33_raw'], timeperiod=5)
+    
+    # For a Hull period of 45, we use T3 period = 27
+    df_copy['close_T3_27_raw'] = calculate_t3(df_copy['close_raw'], period=27, factor=0.7)
+    df_copy['close_T3_27_slope_2_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_27_raw'], timeperiod=2)
+    df_copy['close_T3_27_slope_5_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_27_raw'], timeperiod=5)
+    
+    # For a Hull period of 35, we use T3 period = 21
+    df_copy['close_T3_21_raw'] = calculate_t3(df_copy['close_raw'], period=21, factor=0.7)
+    df_copy['close_T3_21_slope_2_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_21_raw'], timeperiod=2)
+    df_copy['close_T3_21_slope_5_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_21_raw'], timeperiod=5)
+    
+    # For a Hull period of 25, we use T3 period = 15
+    df_copy['close_T3_15_raw'] = calculate_t3(df_copy['close_raw'], period=15, factor=0.7)
+    df_copy['close_T3_15_slope_2_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_15_raw'], timeperiod=2)
+    df_copy['close_T3_15_slope_2_raw_positive'] = (df_copy['close_T3_15_slope_2_raw'] > 0).astype(int)
+    df_copy['close_T3_15_slope_5_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_15_raw'], timeperiod=5)
+    df_copy['close_T3_15_2nd_deriv_5_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_15_slope_5_raw'], timeperiod=2)
+    df_copy['close_T3_15_2nd_deriv_5_positive'] = (df_copy['close_T3_15_2nd_deriv_5_raw'] > 0).astype(int)
+    
+    # For a Hull period of 20, we use T3 period = 12
+    df_copy['close_T3_12_raw'] = calculate_t3(df_copy['close_raw'], period=12, factor=0.7)
+    df_copy['close_T3_12_slope_2_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_12_raw'], timeperiod=2)
+    df_copy['close_T3_12_slope_2_raw_positive'] = (df_copy['close_T3_12_slope_2_raw'] > 0).astype(int)
+    df_copy['close_T3_12_slope_5_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_12_raw'], timeperiod=5)
+    df_copy['close_T3_12_2nd_deriv_5_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_12_slope_5_raw'], timeperiod=2)
+    df_copy['close_T3_12_2nd_deriv_5_positive'] = (df_copy['close_T3_12_2nd_deriv_5_raw'] > 0).astype(int)
+    
+    # For a Hull period of 15, we use T3 period = 9
+    df_copy['close_T3_9_raw'] = calculate_t3(df_copy['close_raw'], period=9, factor=0.7)
+    df_copy['close_T3_9_slope_2_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_9_raw'], timeperiod=2)
+    df_copy['close_T3_9_slope_5_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_9_raw'], timeperiod=5)
+    df_copy['close_T3_9_2nd_deriv_5_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_9_slope_5_raw'], timeperiod=2)
+    df_copy['close_T3_9_2nd_deriv_5_positive'] = (df_copy['close_T3_9_2nd_deriv_5_raw'] > 0).astype(int)
+    
+    # For a Hull period of 10, we use T3 period = 6
+    df_copy['close_T3_6_raw'] = calculate_t3(df_copy['close_raw'], period=6, factor=0.7)
+    df_copy['close_T3_6_slope_2_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_6_raw'], timeperiod=2)
+    df_copy['close_T3_6_slope_5_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_6_raw'], timeperiod=5)
+    df_copy['close_T3_6_2nd_deriv_5_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_6_slope_5_raw'], timeperiod=2)
+    df_copy['close_T3_6_2nd_deriv_5_positive'] = (df_copy['close_T3_6_2nd_deriv_5_raw'] > 0).astype(int)
+    
+    # For a Hull period of 5, we use T3 period = 3
+    df_copy['close_T3_3_raw'] = calculate_t3(df_copy['close_raw'], period=3, factor=0.7)
+    df_copy['close_T3_3_slope_2_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_3_raw'], timeperiod=2)
+    df_copy['close_T3_3_slope_5_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_3_raw'], timeperiod=5)
     
     
     return df_copy, created_features
