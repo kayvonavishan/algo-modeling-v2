@@ -483,7 +483,7 @@ model_hma15_5_t5 = load_model(
 scaler_hma15_5_t5 = None
 
 ######################
-# T3
+# T3_6
 ######################
 
 model_T3_6_t1 = load_model(
@@ -520,6 +520,41 @@ model_T3_6_t5 = load_model(
     num_features=8
 )
 scaler_T3_6_t5 = None
+
+model_T3_6_t6 = load_model(
+    model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_T3_6_slope_5_raw_15min_t6.pth',
+    input_size=7,
+    num_features=8
+)
+scaler_T3_6_t6 = None
+
+######################
+# T3_3 (z-score)
+######################
+
+# Load model for t1 and set scaler to None
+model_T3_3_t1 = load_model(
+    model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_T3_3_slope_5_raw_zscore_15min_t1.pth',
+    input_size=7,
+    num_features=2
+)
+scaler_T3_3_t1 = None
+
+# Load model for t2 and set scaler to None
+model_T3_3_t2 = load_model(
+    model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_T3_3_slope_5_raw_zscore_15min_t2.pth',
+    input_size=7,
+    num_features=2
+)
+scaler_T3_3_t2 = None
+
+# Load model for t3 and set scaler to None
+model_T3_3_t3 = load_model(
+    model_path='C:/Users/daraa/Desktop/algo-modeling-v2/RNN_models/close_T3_3_slope_5_raw_zscore_15min_t3.pth',
+    input_size=7,
+    num_features=2
+)
+scaler_T3_3_t3 = None
 
 
 

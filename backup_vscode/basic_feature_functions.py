@@ -244,6 +244,29 @@ def features_for_RNN_models(df, periods=[45, 35, 25, 20, 15, 10], slope_periods=
     df_copy['close_T3_3_raw'] = calculate_t3(df_copy['close_raw'], period=3, factor=0.7)
     df_copy['close_T3_3_slope_2_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_3_raw'], timeperiod=2)
     df_copy['close_T3_3_slope_5_raw'] = talib.LINEARREG_SLOPE(df_copy['close_T3_3_raw'], timeperiod=5)
+
+    # T3 moving average + z-score 
+    # Define the list of slope features
+    slope_features = [
+        'close_T3_36_slope_2_raw', 'close_T3_36_slope_5_raw',
+        'close_T3_33_slope_2_raw', 'close_T3_33_slope_5_raw',
+        'close_T3_27_slope_2_raw', 'close_T3_27_slope_5_raw',
+        'close_T3_21_slope_2_raw', 'close_T3_21_slope_5_raw',
+        'close_T3_15_slope_2_raw', 'close_T3_15_slope_5_raw', 'close_T3_15_2nd_deriv_5_raw',
+        'close_T3_12_slope_2_raw', 'close_T3_12_slope_5_raw', 'close_T3_12_2nd_deriv_5_raw',
+        'close_T3_9_slope_2_raw', 'close_T3_9_slope_5_raw', 'close_T3_9_2nd_deriv_5_raw',
+        'close_T3_6_slope_2_raw', 'close_T3_6_slope_5_raw', 'close_T3_6_2nd_deriv_5_raw',
+        'close_T3_3_slope_2_raw', 'close_T3_3_slope_5_raw'
+    ]
+    
+    # Define the rolling window size (for trailing calculation, e.g., 250 periods)
+    window_size = 250
+    
+    # Loop through each slope feature, calculate its trailing z-score, and add as a new column.
+    for col in slope_features:
+        rolling_mean = df_copy[col].rolling(window=window_size).mean()
+        rolling_std = df_copy[col].rolling(window=window_size).std()
+        df_copy[f"{col}_zscore"] = (df_copy[col] - rolling_mean) / rolling_std
     
     
     return df_copy, created_features

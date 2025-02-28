@@ -249,6 +249,14 @@ def calculate_precomputed_features(data_dict, optuna_ticker_list=None):
         ticker_df_adjusted = predict_T3_6_t3(ticker_df_adjusted, model_T3_6_t3, scaler_T3_6_t3)
         ticker_df_adjusted = predict_T3_6_t4(ticker_df_adjusted, model_T3_6_t4, scaler_T3_6_t4)
         ticker_df_adjusted = predict_T3_6_t5(ticker_df_adjusted, model_T3_6_t5, scaler_T3_6_t5)
+        ticker_df_adjusted = predict_T3_6_t6(ticker_df_adjusted, model_T3_6_t6, scaler_T3_6_t6)
+
+        # T3_3 predictions
+        ticker_df_adjusted = predict_T3_3_slope_5_raw_zscore_t1(ticker_df_adjusted, model_T3_3_t1, scaler_T3_3_t1)
+        ticker_df_adjusted = predict_T3_3_slope_5_raw_zscore_t2(ticker_df_adjusted, model_T3_3_t2, scaler_T3_3_t2)
+        ticker_df_adjusted = predict_T3_3_slope_5_raw_zscore_t3(ticker_df_adjusted, model_T3_3_t3, scaler_T3_3_t3)
+
+        
 
 
         # remove underlying RNN features 
