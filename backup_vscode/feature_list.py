@@ -1250,6 +1250,38 @@ def copy_other_features(ticker_df_adjusted, df_features):
         'std_dev_above_zero_6_t5',
         'std_dev_below_zero_6_t5',
         'close_T3_6_slope_5_raw_t5_accel',
+        'close_T3_6_slope_5_raw_t6_diff',
+        'close_T3_6_slope_5_raw_t6_diff_positive',
+        'close_T3_6_slope_5_raw_t6_prediction_positive',
+        'close_T3_6_plus_slope_prediction_t6',
+        'close_T3_6_std_150',
+        'std_dev_above_zero_6_t6',
+        'std_dev_below_zero_6_t6',
+        'close_T3_6_slope_5_raw_t6_accel',
+
+
+        'close_T3_3_slope_5_raw_zscore_t1_prediction',
+        'close_T3_3_slope_5_raw_zscore_t1_diff',
+        'close_T3_3_slope_5_raw_zscore_t1_diff_positive',
+        'close_T3_3_slope_5_raw_zscore_t1_prediction_positive',
+        'close_T3_3_slope_5_raw_zscore_t1_accel',
+        'std_dev_above_zero_T3_3_slope_5_raw_zscore_t1',
+        'std_dev_below_zero_T3_3_slope_5_raw_zscore_t1',
+        'close_T3_3_slope_5_raw_zscore_t2_prediction',
+        'close_T3_3_slope_5_raw_zscore_t2_diff',
+        'close_T3_3_slope_5_raw_zscore_t2_diff_positive',
+        'close_T3_3_slope_5_raw_zscore_t2_prediction_positive',
+        'close_T3_3_slope_5_raw_zscore_t2_accel',
+        'std_dev_above_zero_T3_3_slope_5_raw_zscore_t2',
+        'std_dev_below_zero_T3_3_slope_5_raw_zscore_t2',
+        'close_T3_3_slope_5_raw_zscore_t3_prediction',
+        'close_T3_3_slope_5_raw_zscore_t3_diff',
+        'close_T3_3_slope_5_raw_zscore_t3_diff_positive',
+        'close_T3_3_slope_5_raw_zscore_t3_prediction_positive',
+        'close_T3_3_slope_5_raw_zscore_t3_accel',
+        'std_dev_above_zero_T3_3_slope_5_raw_zscore_t3',
+        'std_dev_below_zero_T3_3_slope_5_raw_zscore_t3',
+
 
 
 
