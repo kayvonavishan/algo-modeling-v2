@@ -260,9 +260,9 @@ def create_probability_return_histogram(symbol_trades, symbol, highest_class, fi
         symbol_trades = symbol_trades[symbol_trades['predicted_class'] != highest_class]
         if len(symbol_trades) == 0:
             return None  # Return None if no trades match the filter
-        
-        # Make an explicit copy to avoid SettingWithCopyWarning
-        symbol_trades = symbol_trades.copy()
+
+    # Make an explicit copy to avoid SettingWithCopyWarning
+    symbol_trades = symbol_trades.copy()
 
     # Get the actual range of probabilities
     min_prob = symbol_trades['highest_class_probability'].min()
