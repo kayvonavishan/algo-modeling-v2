@@ -15,6 +15,8 @@ class BacktestResults:
     symbol_metrics: pd.DataFrame
     equity_curves: Dict[str, pd.DataFrame]
     equity_curve_plots: Optional[List[Figure]] = None
+    equity_curves_with_cost: Dict[str, pd.DataFrame] = None
+    equity_curve_plots_with_cost: Optional[List[Figure]] = None
 
 class SymbolBacktester:
     def __init__(self, initial_capital: float = 10000, 
@@ -29,7 +31,9 @@ class SymbolBacktester:
                 use_simpler_position_sizing: bool = True,
                 use_performance_scaling: bool = True,
                 stop_loss_scale_coeff: float = 25.0,
-                is_model_type_short=False
+                is_model_type_short=False,
+                avg_bid_ask_spread=0.00,
+                initial_capital_with_cost: float = 10000.0,
                 ):
         self.initial_capital = initial_capital
         self.atr_period_for_stoploss = atr_period_for_stoploss  # Updated variable name
@@ -37,6 +41,7 @@ class SymbolBacktester:
         self.stop_loss_adjust_sma_period = stop_loss_adjust_sma_period
         self.portfolio_timestamps = []
         self.portfolio_value = []
+        self.portfolio_value_with_cost = []
         self.debug = debug
 
         self.lookback_period_for_position_size = lookback_period_for_position_size
@@ -50,6 +55,8 @@ class SymbolBacktester:
         self.use_performance_scaling = use_performance_scaling
         self.stop_loss_scale_coeff = stop_loss_scale_coeff
         self.is_model_type_short = is_model_type_short
+        self.avg_bid_ask_spread = avg_bid_ask_spread
+        self.initial_capital_with_cost = initial_capital_with_cost
         # Initialize historical_trades with all expected columns
         self.historical_trades = pd.DataFrame(columns=[
             'symbol', 'buy_timestamp', 'sell_timestamp', 'buy_price', 'sell_price',
@@ -67,6 +74,7 @@ class SymbolBacktester:
         This version uses an exponential moving average (EMA) instead of a simple average for both the 
         simpler sizing and the Kelly-based sizing logic.
         """
+        return 1.0
 
         # Basic checks remain the same
         if 'predicted_class' not in self.historical_trades.columns:
@@ -360,6 +368,7 @@ class SymbolBacktester:
 
         trades_list = []
         capital = self.initial_capital
+        capital_with_cost = self.initial_capital
         position_open = False
         predicted_class_at_buy = None
         buy_timestamp = None
@@ -399,6 +408,11 @@ class SymbolBacktester:
                         excess_position = self.current_position_size - max_allowed
                         profit = (current_price - self.current_entry_price) / self.current_entry_price * excess_position
                         capital += profit
+                        #including trading costs
+                        buy_price_with_cost = self.current_entry_price + (self.current_entry_price * self.avg_bid_ask_spread / 2 / 100)
+                        sell_price_with_cost = current_price - (current_price * self.avg_bid_ask_spread / 2 / 100)
+                        profit_with_cost = (sell_price_with_cost - buy_price_with_cost) / buy_price_with_cost * excess_position
+                        capital_with_cost += profit_with_cost
 
                         trade = {
                             'symbol': symbol,
@@ -413,7 +427,12 @@ class SymbolBacktester:
                             'hold_time_hours': (timestamp - buy_timestamp) / np.timedelta64(1, 'h'),
                             'predicted_class': predicted_class_at_buy,
                             'highest_class_probability': market_df.iloc[index][highest_class_col],
-                            'is_partial': True
+                            'is_partial': True,
+                            'buy_price_with_cost': buy_price_with_cost,
+                            'sell_price_with_cost': sell_price_with_cost,
+                            'return_with_cost': profit_with_cost,
+                            'return_percentage_with_cost': (sell_price_with_cost - buy_price_with_cost) / buy_price_with_cost * 100,
+                            'capital_with_cost': capital_with_cost,
                         }
                         trades_list.append(trade)
 
@@ -471,6 +490,11 @@ class SymbolBacktester:
                 # Close entire remaining position
                 profit = (current_price - self.current_entry_price) / self.current_entry_price * self.current_position_size
                 capital += profit
+                #including trading costs
+                buy_price_with_cost = self.current_entry_price + (self.current_entry_price * self.avg_bid_ask_spread / 2 / 100)
+                sell_price_with_cost = current_price - (current_price * self.avg_bid_ask_spread / 2 / 100)
+                profit_with_cost = (sell_price_with_cost - buy_price_with_cost) / buy_price_with_cost * self.current_position_size
+                capital_with_cost += profit_with_cost
                 
                 trade = {
                     'symbol': symbol,
@@ -485,7 +509,12 @@ class SymbolBacktester:
                     'hold_time_hours': (timestamp - buy_timestamp) / np.timedelta64(1, 'h'),
                     'predicted_class': predicted_class_at_buy,
                     'highest_class_probability': highest_class_prob_at_buy,
-                    'is_partial': False  # Complete position close
+                    'is_partial': False,  # Complete position close
+                    'buy_price_with_cost': buy_price_with_cost,
+                    'sell_price_with_cost': sell_price_with_cost,
+                    'return_with_cost': profit_with_cost,
+                    'return_percentage_with_cost': (sell_price_with_cost - buy_price_with_cost) / buy_price_with_cost * 100,
+                    'capital_with_cost': capital_with_cost,
                 }
                 trades_list.append(trade)
                 
@@ -505,6 +534,7 @@ class SymbolBacktester:
             if len(self.portfolio_timestamps) == 0 or self.portfolio_timestamps[-1] != timestamp:
                 self.portfolio_timestamps.append(timestamp)
                 self.portfolio_value.append(capital)
+                self.portfolio_value_with_cost.append(capital_with_cost)
 
         # Final update of historical trades
         if trades_list:
@@ -530,6 +560,7 @@ class SymbolBacktester:
 
         trades_list = []
         capital = self.initial_capital
+        capital_with_cost = self.initial_capital
         position_open = False
         predicted_class_at_entry = None
         # We still use 'buy_timestamp' for the entry time (i.e. when we open the short)
@@ -572,6 +603,11 @@ class SymbolBacktester:
                         # Profit for a short trade: (entry_price - current_price) / entry_price * position size (absolute)
                         profit = (self.current_entry_price - current_price) / self.current_entry_price * excess_position
                         capital += profit
+                        #including trading costs - we subtract from the buy and add to the sell because we are shorting.
+                        buy_price_with_cost = self.current_entry_price - (self.current_entry_price * self.avg_bid_ask_spread / 2 / 100)
+                        sell_price_with_cost = current_price + (current_price * self.avg_bid_ask_spread / 2 / 100)
+                        profit_with_cost = (buy_price_with_cost - sell_price_with_cost) / buy_price_with_cost * excess_position
+                        capital_with_cost += profit_with_cost
 
                         trade = {
                             'symbol': symbol,
@@ -586,7 +622,12 @@ class SymbolBacktester:
                             'hold_time_hours': (timestamp - entry_timestamp) / np.timedelta64(1, 'h'),
                             'predicted_class': predicted_class_at_entry,
                             'highest_class_probability': market_df.iloc[index][highest_class_col],
-                            'is_partial': True
+                            'is_partial': True,
+                            'buy_price_with_cost': buy_price_with_cost,
+                            'sell_price_with_cost': sell_price_with_cost,
+                            'return_with_cost': profit_with_cost,
+                            'return_percentage_with_cost': (buy_price_with_cost - sell_price_with_cost) / buy_price_with_cost * 100,
+                            'capital_with_cost': capital_with_cost,
                         }
                         trades_list.append(trade)
 
@@ -645,6 +686,11 @@ class SymbolBacktester:
                 # Calculate profit: for a short, profit is (entry_price - cover_price)
                 profit = (self.current_entry_price - current_price) / self.current_entry_price * abs(self.current_position_size)
                 capital += profit
+                #including trading costs - we subtract from the buy and add to the sell because we are shorting.
+                buy_price_with_cost = self.current_entry_price - (self.current_entry_price * self.avg_bid_ask_spread / 2 / 100)
+                sell_price_with_cost = current_price + (current_price * self.avg_bid_ask_spread/ 2 / 100)
+                profit_with_cost = (buy_price_with_cost - sell_price_with_cost) / buy_price_with_cost * abs(self.current_position_size)
+                capital_with_cost += profit_with_cost
 
                 trade = {
                     'symbol': symbol,
@@ -659,7 +705,12 @@ class SymbolBacktester:
                     'hold_time_hours': (timestamp - entry_timestamp) / np.timedelta64(1, 'h'),
                     'predicted_class': predicted_class_at_entry,
                     'highest_class_probability': highest_class_prob_at_entry,
-                    'is_partial': False  # Complete cover of the short position
+                    'is_partial': False,  # Complete cover of the short position
+                    'buy_price_with_cost': buy_price_with_cost,
+                    'sell_price_with_cost': sell_price_with_cost,
+                    'return_with_cost': profit_with_cost,
+                    'return_percentage_with_cost': (buy_price_with_cost - sell_price_with_cost) / buy_price_with_cost * 100,
+                    'capital_with_cost': capital_with_cost,
                 }
                 trades_list.append(trade)
 
@@ -675,6 +726,7 @@ class SymbolBacktester:
             if len(self.portfolio_timestamps) == 0 or self.portfolio_timestamps[-1] != timestamp:
                 self.portfolio_timestamps.append(timestamp)
                 self.portfolio_value.append(capital)
+                self.portfolio_value_with_cost.append(capital_with_cost)
 
         # Final update of historical trades
         if trades_list:
@@ -710,7 +762,12 @@ class SymbolBacktester:
                 'sharpe_ratio': 0,
                 'overnight_trades_count': 0,
                 'overnight_trades_return_percentage': 0,
-                'partial_trades_count': 0
+                'partial_trades_count': 0,
+                'buy_price_with_cost': 0,
+                'sell_price_with_cost': 0,
+                'return_with_cost': 0,
+                'return_percentage_with_cost': 0,
+                'capital_with_cost': 0,
             }
 
         # Separate complete and partial trades
@@ -721,6 +778,10 @@ class SymbolBacktester:
         winning_trades = (trades_df['return'] > 0).sum()
         losing_trades = (trades_df['return'] <= 0).sum()
         win_loss_ratio = winning_trades / losing_trades if losing_trades > 0 else float('inf')
+
+        winning_trades_with_cost = (trades_df['return_with_cost'] > 0).sum()
+        losing_trades_with_cost = (trades_df['return_with_cost'] <= 0).sum()
+        win_loss_ratio_with_cost = winning_trades_with_cost / losing_trades_with_cost if losing_trades_with_cost > 0 else float('inf')
 
         # Calculate overnight trade metrics
         overnight_trades = trades_df[
@@ -753,6 +814,27 @@ class SymbolBacktester:
             sharpe_ratio = (mean_daily_return / std_daily_return * np.sqrt(252)) if std_daily_return != 0 else 0
         else:
             sharpe_ratio = 0
+        
+        if len(self.portfolio_value_with_cost) > 1:
+            portfolio_df_with_cost = pd.DataFrame({
+                'timestamp': self.portfolio_timestamps,
+                'capital': self.portfolio_value_with_cost
+            })
+            portfolio_df_with_cost.set_index('timestamp', inplace=True)
+            portfolio_df_with_cost = portfolio_df_with_cost.sort_index()
+
+            duplicates_portfolio = portfolio_df_with_cost.index.duplicated().sum()
+            assert duplicates_portfolio == 0, f"Symbol {symbol} has {duplicates_portfolio} duplicate timestamps in portfolio data."
+
+            portfolio_daily = portfolio_df_with_cost.resample('D').ffill()
+            portfolio_daily['daily_return'] = portfolio_daily['capital'].pct_change()
+            portfolio_daily.dropna(inplace=True)
+
+            mean_daily_return = portfolio_daily['daily_return'].mean()
+            std_daily_return = portfolio_daily['daily_return'].std()
+            sharpe_ratio_with_cost = (mean_daily_return / std_daily_return * np.sqrt(252)) if std_daily_return != 0 else 0
+        else:
+            sharpe_ratio_with_cost = 0
 
         # Calculate average position sizes (considering both partial and complete trades)
         avg_position_size = trades_df['position_size'].mean() / self.initial_capital * 100
@@ -770,6 +852,12 @@ class SymbolBacktester:
             'buy_and_hold_hold_time_hours': buy_and_hold_hold_time_hours,
             'trading_hold_time_hours': trading_hold_time_hours,
             'sharpe_ratio': sharpe_ratio,
+
+            #with trading costs
+            'total_returns_percentage_with_cost': (trades_df['capital_with_cost'].iloc[-1] - self.initial_capital_with_cost) / self.initial_capital_with_cost * 100,
+            'win_loss_ratio_with_cost': win_loss_ratio_with_cost,
+            'average_percent_return_with_cost': trades_df['return_percentage_with_cost'].mean(),
+            'sharpe_ratio_with_cost': sharpe_ratio_with_cost,
 
             # Position sizing metrics
             'average_position_size': avg_position_size,
@@ -933,7 +1021,18 @@ class SymbolBacktester:
         else:
             equity_curve_df = pd.DataFrame()
 
-        return trades_df, metrics, df, equity_curve_df
+        # Collect equity curve
+        if len(self.portfolio_timestamps) > 0 and len(self.portfolio_value_with_cost) > 0:
+            equity_curve_df_with_cost = pd.DataFrame({
+                'timestamp': self.portfolio_timestamps,
+                'capital': self.portfolio_value_with_cost
+            })
+            equity_curve_df_with_cost['symbol'] = symbol
+            equity_curve_df_with_cost.sort_values('timestamp', inplace=True)
+        else:
+            equity_curve_df_with_cost = pd.DataFrame()
+
+        return trades_df, metrics, df, equity_curve_df, equity_curve_df_with_cost
     
 def calculate_buy_hold_equity(df, initial_capital):
     """Calculate buy & hold equity curve using all price changes"""
@@ -973,7 +1072,8 @@ def run_backtest(df: pd.DataFrame, atr_coeff: float = 1.0, initial_capital: floa
                 use_performance_scaling: bool = True,
                 use_simpler_position_sizing=True,
                 return_equity_curves: bool = False,
-                is_model_type_short=False) -> BacktestResults:
+                is_model_type_short=False,
+                avg_bid_ask_spread=0.00) -> BacktestResults:
     if debug:
         print(f"[DEBUG] Starting run_backtest with atr_coeff={atr_coeff}, initial_capital={initial_capital}")
 
@@ -981,6 +1081,7 @@ def run_backtest(df: pd.DataFrame, atr_coeff: float = 1.0, initial_capital: floa
     all_metrics = []
     processed_dfs = []
     equity_curves = {}
+    equity_curves_with_cost = {}
 
     # Iterate over each symbol and process them independently
     symbols = df['symbol'].unique()
@@ -1002,7 +1103,8 @@ def run_backtest(df: pd.DataFrame, atr_coeff: float = 1.0, initial_capital: floa
             kelly_multiplier=kelly_multiplier,
             overnight_position_size=overnight_position_size,
             use_simpler_position_sizing=use_simpler_position_sizing,
-            is_model_type_short=is_model_type_short
+            is_model_type_short=is_model_type_short,
+            avg_bid_ask_spread=avg_bid_ask_spread
         )
 
         symbol_df = df[df['symbol'] == symbol].copy()
@@ -1013,7 +1115,7 @@ def run_backtest(df: pd.DataFrame, atr_coeff: float = 1.0, initial_capital: floa
         assert duplicates_input == 0, f"Symbol {symbol} has {duplicates_input} duplicate timestamps in input data."
 
         try:
-            trades_df, metrics, processed_df, equity_curve_df = backtester.backtest_symbol(
+            trades_df, metrics, processed_df, equity_curve_df, equity_curve_df_with_cost = backtester.backtest_symbol(
                 symbol_df,
                 symbol,
                 atr_coeff,
@@ -1033,6 +1135,8 @@ def run_backtest(df: pd.DataFrame, atr_coeff: float = 1.0, initial_capital: floa
 
         if not equity_curve_df.empty:
             equity_curves[symbol] = equity_curve_df
+        if not equity_curve_df_with_cost.empty:
+            equity_curves_with_cost[symbol] = equity_curve_df_with_cost
 
     combined_trades = pd.concat(all_trades) if all_trades else pd.DataFrame()
     metrics_df = pd.DataFrame(all_metrics) if all_metrics else pd.DataFrame()
@@ -1052,6 +1156,11 @@ def run_backtest(df: pd.DataFrame, atr_coeff: float = 1.0, initial_capital: floa
         average_total_return_percentage = metrics_df['total_returns_percentage'].mean()
     else:
         average_total_return_percentage = 0
+    
+    if not metrics_df.empty and 'total_returns_percentage_with_cost' in metrics_df.columns:
+        average_total_return_percentage_with_cost = metrics_df['total_returns_percentage_with_cost'].mean()
+    else:
+        average_total_return_percentage_with_cost = 0
 
     if ('buy_and_hold_return_percentage' in metrics_df.columns and 
         not metrics_df['buy_and_hold_return_percentage'].empty):
@@ -1063,10 +1172,18 @@ def run_backtest(df: pd.DataFrame, atr_coeff: float = 1.0, initial_capital: floa
     return_per_buy_and_hold_hour = (average_total_return_percentage_buy_and_hold / mean_hold_time_buy_and_hold_hours) if mean_hold_time_buy_and_hold_hours > 0 else 0
     ratio_return_per_trading_hour = (return_per_trading_hour / return_per_buy_and_hold_hour) if return_per_buy_and_hold_hour > 0 else 0
 
+    return_per_trading_hour_with_cost = (average_total_return_percentage_with_cost  / mean_hold_time_trading_hours) if mean_hold_time_trading_hours > 0 else 0
+    ratio_return_per_trading_hour_with_cost  = (return_per_trading_hour_with_cost  / return_per_buy_and_hold_hour) if return_per_buy_and_hold_hour > 0 else 0
+
     if 'sharpe_ratio' in metrics_df.columns and not metrics_df['sharpe_ratio'].empty:
         mean_sharpe_ratio = metrics_df['sharpe_ratio'].mean()
     else:
         mean_sharpe_ratio = 0
+    
+    if 'sharpe_ratio_with_cost' in metrics_df.columns and not metrics_df['sharpe_ratio_with_cost'].empty:
+        mean_sharpe_ratio_with_cost = metrics_df['sharpe_ratio_with_cost'].mean()
+    else:
+        mean_sharpe_ratio_with_cost = 0
 
     overall_metrics = {
         'total_trades': len(combined_trades),
@@ -1080,10 +1197,18 @@ def run_backtest(df: pd.DataFrame, atr_coeff: float = 1.0, initial_capital: floa
         'return_per_trading_hour': return_per_trading_hour,
         'return_per_buy_and_hold_hour': return_per_buy_and_hold_hour,
         'ratio_return_per_trading_hour': ratio_return_per_trading_hour,
-        'mean_sharpe_ratio': mean_sharpe_ratio
+        'mean_sharpe_ratio': mean_sharpe_ratio,
+
+        'average_total_return_percentage_with_cost': average_total_return_percentage_with_cost ,
+        'average_trade_return_with_cost': combined_trades['return_percentage_with_cost'].mean() if not combined_trades.empty else 0,
+        'winning_trades_percentage_with_cost': (combined_trades['return_with_cost'] > 0).mean() * 100 if not combined_trades.empty else 0,
+        'return_per_trading_hour_with_cost': return_per_trading_hour_with_cost,
+        'ratio_return_per_trading_hour_with_cost': ratio_return_per_trading_hour_with_cost,
+        'mean_sharpe_ratio_with_cost': mean_sharpe_ratio_with_cost 
     }
 
     equity_curve_plots = []  # New list to store the plots
+    equity_curve_plots_with_cost = []  # New list to store the plots
     
     if return_equity_curves:
         for symbol, equity_df in equity_curves.items():
@@ -1110,11 +1235,39 @@ def run_backtest(df: pd.DataFrame, atr_coeff: float = 1.0, initial_capital: floa
             plt.xticks(rotation=45)
             plt.tight_layout()
             equity_curve_plots.append(fig)
+        
+    if return_equity_curves:
+        for symbol, equity_df in equity_curves_with_cost.items():
+            symbol_df = df[df['symbol'] == symbol]
+            
+            # Calculate curves
+            buy_hold_df = calculate_buy_hold_equity(symbol_df, initial_capital)
+            daily_equity_df = calculate_daily_equity(symbol_df, initial_capital)
+            
+            fig, ax = plt.subplots(figsize=(10, 6))
+            
+            # Plot all curves
+            ax.plot(equity_df['timestamp'], equity_df['capital'], 
+                    label='Strategy', color='blue')
+            ax.plot(buy_hold_df['timestamp'], buy_hold_df['capital'],
+                    label='Buy & Hold', color='green')
+            ax.plot(daily_equity_df['timestamp'], daily_equity_df['capital'],
+                    label='Daily Buy & Hold', color='red')
+            
+            ax.set_title(f'Equity Curves - {symbol}')
+            ax.set_xlabel('Date')
+            ax.set_ylabel('Capital')
+            ax.legend()
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            equity_curve_plots_with_cost.append(fig)
 
     return BacktestResults(
         trades_df=combined_trades,
         summary_metrics=overall_metrics,
         symbol_metrics=metrics_df,
         equity_curves=equity_curves,
-        equity_curve_plots=equity_curve_plots if return_equity_curves else None  # Add new field
+        equity_curve_plots=equity_curve_plots if return_equity_curves else None,
+        equity_curves_with_cost=equity_curves_with_cost,
+        equity_curve_plots_with_cost=equity_curve_plots_with_cost if return_equity_curves else None,
     )

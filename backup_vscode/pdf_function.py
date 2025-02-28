@@ -19,6 +19,8 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")
 
 def create_label_distribution_plots(df_train, df_test):
     """
@@ -243,7 +245,6 @@ def create_probability_return_histogram(symbol_trades, symbol, highest_class, fi
     import matplotlib.pyplot as plt
     import pandas as pd
     import numpy as np
-
     fig, ax = plt.subplots(figsize=(10, 6))
 
     # Input validation - can't have both filters active
@@ -277,7 +278,7 @@ def create_probability_return_histogram(symbol_trades, symbol, highest_class, fi
     )
     # Create labels based on the number of bins (bins are edges, so there are len(bins)-1 bins)
     bin_labels = [f'Quintile {i+1}' for i in range(len(bins) - 1)]
-    
+
     # Use pd.cut with the computed bins and labels to assign a new column
     symbol_trades.loc[:, 'prob_bin'] = pd.cut(
         symbol_trades['highest_class_probability'],
@@ -291,6 +292,7 @@ def create_probability_return_histogram(symbol_trades, symbol, highest_class, fi
         'return_percentage': ['mean', 'count', 'std'],
         'highest_class_probability': ['min', 'max']
     }).round(3)
+
     bin_stats.columns = ['mean_return', 'count', 'std', 'min_prob', 'max_prob']
 
     # Create more informative bin labels showing the probability ranges
@@ -329,8 +331,6 @@ def create_probability_return_histogram(symbol_trades, symbol, highest_class, fi
     plt.tight_layout()
 
     return fig
-
-
 
 
 def generate_class_metric_plots(trades_df: pd.DataFrame, initial_capital: float = 10000) -> List[Figure]:
@@ -1389,6 +1389,16 @@ def create_backtest_metrics_table(symbol_metrics_df: pd.DataFrame) -> Figure:
     
     # Split metrics into groups for better visualization
     metric_groups = {
+        'Returns - With Cost': [
+            'total_returns_percentage_with_cost',
+            'average_percent_return_with_cost',
+            'buy_and_hold_return_percentage'
+        ],
+        'Trade Statistics - With Cost': [
+            'number_of_trades',
+            'win_loss_ratio_with_cost',
+            'sharpe_ratio_with_cost'
+        ],
         'Returns': [
             'total_returns_percentage',
             'average_percent_return',
@@ -1497,7 +1507,8 @@ def save_all_plots_in_one_pdf(
     extra_figures=None,
     debug_output=None, 
     equity_curve_plots=None,
-    backtesting_results=None  
+    backtesting_results=None,
+    equity_curve_plots_with_cost=None
 ):
     """
     Creates a single PDF (trial_{trial_number}.pdf) containing:
@@ -1582,6 +1593,11 @@ def save_all_plots_in_one_pdf(
         # ---------------------------------------------------------
         # EQUITY PLOT
         # ---------------------------------------------------------
+
+        if equity_curve_plots_with_cost is not None:
+            for fig in equity_curve_plots_with_cost:
+                pdf.savefig(fig)
+                plt.close(fig)
 
         if equity_curve_plots is not None:
             for fig in equity_curve_plots:
@@ -1932,6 +1948,7 @@ def save_all_plots_in_one_pdf(
         #----------------------------------
         # Add other plots plots if provided
         #----------------------------------
+
 
         if len(trades_df) > 0 and 'predicted_class' in trades_df.columns:
             class_metric_figs = generate_class_metric_plots(trades_df, initial_capital=initial_capital)
